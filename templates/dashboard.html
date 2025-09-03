@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doorbell Security System - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background-color: #27ae60; }
+        .status-offline { background-color: #e74c3c; }
+        .status-warning { background-color: #f39c12; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .status-item strong {
+            color: #2c3e50;
+        }
+
+        .log-container {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .led-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .events-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .event-item {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #3498db;
+        }
+
+        .face-results {
+            margin-top: 15px;
+        }
+
+        .face-result {
+            background: rgba(39, 174, 96, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #27ae60;
+        }
+
+        .face-result.unknown {
+            background: rgba(243, 156, 18, 0.1);
+            border-left-color: #f39c12;
+        }
+
+        .face-result.blacklisted {
+            background: rgba(231, 76, 60, 0.1);
+            border-left-color: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 Doorbell Security System</h1>
+            <p style="text-align: center; color: #7f8c8d;">
+                <span id="system-status" class="status-indicator status-offline"></span>
+                <span id="status-text">Connecting...</span> | 
+                Last updated: <span id="last-updated">-</span>
+            </p>
+        </div>
+
+        <div class="grid">
+            <!-- System Control -->
+            <div class="card">
+                <h2>🎮 System Control</h2>
+                <button class="btn btn-danger" onclick="triggerDoorbell()">
+                    🔔 Trigger Doorbell
+                </button>
+                <button class="btn" onclick="capturePhoto()">
+                    📷 Capture Photo
+                </button>
+                <button class="btn" onclick="testFaceRecognition()">
+                    👤 Test Face Recognition
+                </button>
+                <button class="btn btn-warning" onclick="testNotification()">
+                    📱 Test Notification
+                </button>
+                
+                <div id="last-capture">
+                    <img id="captured-image" class="image-preview" style="display: none;">
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h2>📊 System Status</h2>
+                <div class="status-grid" id="status-grid">
+                    <div class="status-item">
+                        <strong>Camera:</strong> <span id="camera-status">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>GPIO:</strong> <span id="gpio-status">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Telegram:</strong> <span id="telegram-status">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Known Faces:</strong> <span id="known-faces">-</span>
+                    </div>
+                </div>
+                <button class="btn" onclick="refreshStatus()">🔄 Refresh Status</button>
+            </div>
+
+            <!-- LED Control -->
+            <div class="card">
+                <h2>💡 LED Control</h2>
+                <p>Control status LEDs:</p>
+                <div class="led-controls">
+                    <button class="btn btn-success" onclick="setLED('idle')">🟢 Idle</button>
+                    <button class="btn btn-warning" onclick="setLED('processing')">🟡 Processing</button>
+                    <button class="btn btn-success" onclick="setLED('known')">🟢 Known</button>
+                    <button class="btn btn-warning" onclick="setLED('unknown')">🟡 Unknown</button>
+                    <button class="btn btn-danger" onclick="setLED('alert')">🔴 Alert</button>
+                    <button class="btn" onclick="setLED('off')">⚫ Off</button>
+                </div>
+                
+                <div class="status-grid" style="margin-top: 15px;">
+                    <div class="status-item">
+                        <strong>Red LED:</strong> <span id="red-led-status">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Yellow LED:</strong> <span id="yellow-led-status">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Green LED:</strong> <span id="green-led-status">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition Results -->
+            <div class="card">
+                <h2>👥 Face Recognition</h2>
+                <p>Latest face recognition results:</p>
+                <div id="face-results" class="face-results">
+                    <p style="color: #7f8c8d;">No recent results</p>
+                </div>
+            </div>
+
+            <!-- Recent Events -->
+            <div class="card">
+                <h2>📋 Recent Events</h2>
+                <button class="btn" onclick="refreshEvents()">🔄 Refresh Events</button>
+                <div id="events-list" class="events-list">
+                    <p style="color: #7f8c8d;">Loading events...</p>
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="card">
+                <h2>📝 System Logs</h2>
+                <button class="btn" onclick="refreshLogs()">🔄 Refresh Logs</button>
+                <div id="logs-container" class="log-container">
+                    Loading logs...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let updateInterval;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            refreshEvents();
+            refreshLogs();
+            
+            // Auto-refresh every 30 seconds
+            updateInterval = setInterval(() => {
+                refreshStatus();
+                refreshEvents();
+            }, 30000);
+        });
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`/api/${endpoint}`, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                return { status: 'error', message: error.message };
+            }
+        }
+
+        async function refreshStatus() {
+            const result = await apiCall('status');
+            
+            if (result.status === 'online') {
+                document.getElementById('system-status').className = 'status-indicator status-online';
+                document.getElementById('status-text').textContent = 'System Online';
+                
+                // Update component statuses
+                document.getElementById('camera-status').textContent = 
+                    result.camera.initialized ? `✅ ${result.camera.camera_type}` : '❌ Not initialized';
+                
+                document.getElementById('gpio-status').textContent = 
+                    result.gpio.initialized ? '✅ Ready' : '❌ Not initialized';
+                
+                document.getElementById('telegram-status').textContent = 
+                    result.telegram.initialized ? '✅ Connected' : '❌ Not configured';
+                
+                document.getElementById('known-faces').textContent = 
+                    `${result.faces.known_faces} known, ${result.faces.blacklist_faces} blacklisted`;
+                
+                // Update LED states
+                if (result.gpio.led_states) {
+                    document.getElementById('red-led-status').textContent = 
+                        result.gpio.led_states.red ? '🔴 ON' : '⚫ OFF';
+                    document.getElementById('yellow-led-status').textContent = 
+                        result.gpio.led_states.yellow ? '🟡 ON' : '⚫ OFF';
+                    document.getElementById('green-led-status').textContent = 
+                        result.gpio.led_states.green ? '🟢 ON' : '⚫ OFF';
+                }
+                
+            } else {
+                document.getElementById('system-status').className = 'status-indicator status-offline';
+                document.getElementById('status-text').textContent = 'System Offline';
+            }
+            
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        }
+
+        async function triggerDoorbell() {
+            const result = await apiCall('trigger-doorbell', 'POST');
+            
+            if (result.status === 'success') {
+                alert('🔔 Doorbell triggered successfully!');
+                setTimeout(refreshEvents, 1000); // Refresh events after 1 second
+            } else {
+                alert(`❌ Error: ${result.message}`);
+            }
+        }
+
+        async function capturePhoto() {
+            const result = await apiCall('capture-photo');
+            
+            if (result.status === 'success') {
+                const img = document.getElementById('captured-image');
+                img.src = result.image_data;
+                img.style.display = 'block';
+                alert('📷 Photo captured successfully!');
+            } else {
+                alert(`❌ Error: ${result.message}`);
+            }
+        }
+
+        async function testFaceRecognition() {
+            const result = await apiCall('test-face-recognition', 'POST');
+            
+            if (result.status === 'success') {
+                displayFaceResults(result);
+                alert(`👤 Face recognition complete: ${result.faces_detected} faces detected`);
+            } else {
+                alert(`❌ Error: ${result.message}`);
+            }
+        }
+
+        function displayFaceResults(result) {
+            const container = document.getElementById('face-results');
+            
+            if (result.faces_detected === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d;">No faces detected</p>';
+                return;
+            }
+            
+            let html = '';
+            result.results.forEach(face => {
+                const statusClass = face.status === 'known' ? 'known' : 
+                                  face.status === 'blacklisted' ? 'blacklisted' : 'unknown';
+                
+                const statusIcon = face.status === 'known' ? '✅' : 
+                                 face.status === 'blacklisted' ? '🚨' : '❓';
+                
+                html += `
+                    <div class="face-result ${statusClass}">
+                        <strong>${statusIcon} Face ${face.face_id}:</strong> 
+                        ${face.status.toUpperCase()}
+                        ${face.name ? ` - ${face.name}` : ''}
+                        <br>
+                        <small>Confidence: ${(face.confidence * 100).toFixed(1)}% | Distance: ${face.distance}</small>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function testNotification() {
+            const message = prompt('Enter notification message:', 'Test message from web dashboard');
+            if (!message) return;
+            
+            const result = await apiCall('test-notification', 'POST', {
+                message: message,
+                priority: 'normal'
+            });
+            
+            if (result.status === 'success') {
+                alert('📱 Test notification sent!');
+            } else {
+                alert(`❌ Error: ${result.message}`);
+            }
+        }
+
+        async function setLED(status) {
+            const result = await apiCall('set-led', 'POST', { status: status });
+            
+            if (result.status === 'success') {
+                setTimeout(refreshStatus, 500); // Refresh status to show LED changes
+            } else {
+                alert(`❌ Error: ${result.message}`);
+            }
+        }
+
+        async function refreshEvents() {
+            const result = await apiCall('recent-events');
+            
+            if (result.status === 'success') {
+                const container = document.getElementById('events-list');
+                
+                if (result.events.length === 0) {
+                    container.innerHTML = '<p style="color: #7f8c8d;">No recent events</p>';
+                    return;
+                }
+                
+                let html = '';
+                result.events.reverse().forEach(event => {
+                    const timestamp = new Date(event.timestamp).toLocaleString();
+                    const icon = event.event_type === 'KNOWN_VISITOR' ? '✅' :
+                                event.event_type === 'UNKNOWN_VISITOR' ? '❓' :
+                                event.event_type === 'BLACKLIST_ALERT' ? '🚨' : '📋';
+                    
+                    html += `
+                        <div class="event-item">
+                            <strong>${icon} ${event.event_type.replace('_', ' ')}</strong>
+                            <br>
+                            <small>${timestamp}</small>
+                            ${event.faces && event.faces.length > 0 ? 
+                              `<br><small>Faces: ${event.faces.map(f => f.name || f.status).join(', ')}</small>` : 
+                              ''}
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+        }
+
+        async function refreshLogs() {
+            const result = await apiCall('logs');
+            
+            if (result.status === 'success') {
+                const container = document.getElementById('logs-container');
+                container.innerHTML = result.logs.join('\n');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

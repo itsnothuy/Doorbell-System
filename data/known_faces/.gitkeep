@@ -1,0 +1,12 @@
+# This file ensures the known_faces directory is tracked in git
+# Add your family/friends face images here:
+# - alice.jpg
+# - bob.jpg  
+# - charlie.jpg
+#
+# Image requirements:
+# - Clear, front-facing photos
+# - JPEG format preferred
+# - At least 200x200 pixels
+# - One face per image
+# - Good lighting conditions

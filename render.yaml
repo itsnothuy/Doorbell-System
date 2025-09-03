@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: doorbell-security-system
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 60
+    envVars:
+      - key: DEVELOPMENT_MODE
+        value: "true"
+      - key: RENDER
+        value: "true"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /api/status
+    autoDeploy: true

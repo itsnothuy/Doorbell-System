@@ -1,0 +1,6 @@
+# This file ensures the blacklist_faces directory is tracked in git
+# FBI most wanted images will be automatically downloaded here
+# You can also manually add suspicious person images here
+#
+# Note: This system is for personal home security only
+# Always verify matches manually before taking action
