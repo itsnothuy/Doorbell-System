@@ -779,12 +779,15 @@
                  card.appendChild(input);
 
                  const actions = document.createElement('div');
-                 actions.style.display = 'flex';
-                 actions.style.gap = '8px';
+                 actions.style.display = 'grid';
+                 actions.style.gridTemplateColumns = '1fr 1fr';
+                 actions.style.gap = '10px';
+                 actions.style.marginTop = '4px';
 
                  const labelBtn = document.createElement('button');
                  labelBtn.className = 'btn btn-success';
                  labelBtn.textContent = '✅ Label';
+                 labelBtn.style.width = '100%';
                  labelBtn.onclick = async () => {
                      const name = (input.value || '').trim();
                      if (!name) { alert('Enter a name to label'); return; }
@@ -802,6 +805,7 @@
                  const removeBtn = document.createElement('button');
                  removeBtn.className = 'btn btn-danger';
                  removeBtn.textContent = '🗑️ Remove';
+                 removeBtn.style.width = '100%';
                  removeBtn.onclick = async () => {
                      if (!confirm('Remove this candidate?')) return;
                      const response = await fetch(`/api/faces/candidates/${encodeURIComponent(item.filename)}`, { method: 'DELETE' });
