@@ -282,6 +282,13 @@
                 </div>
             </div>
 
+            <!-- Live Camera Feed -->
+            <div class="card">
+                <h2>📹 Live Camera Feed</h2>
+                <video id="video" width="100%" height="auto" autoplay playsinline style="border-radius: 8px; background: #333;"></video>
+                <div id="video-error" class="alert alert-danger" style="display: none; margin-top: 15px;"></div>
+            </div>
+
             <!-- Face Recognition Results -->
             <div class="card">
                 <h2>👥 Face Recognition</h2>
@@ -349,6 +356,7 @@
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
+            startCamera();
             refreshStatus();
             refreshKnownFaces();
             refreshEvents();
@@ -361,6 +369,35 @@
                 refreshEvents();
             }, 30000);
         });
+
+        async function startCamera() {
+            const video = document.getElementById('video');
+            const videoError = document.getElementById('video-error');
+            try {
+                videoError.style.display = 'none';
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.style.display = 'block';
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                video.style.display = 'none';
+                videoError.style.display = 'block';
+                let errorMessage = `<strong>Could not access the camera.</strong><br>`;
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                     errorMessage += 'Your browser requires a secure connection (HTTPS) or <strong>localhost</strong> to access the camera.<br>';
+                }
+                if (err.name === 'NotAllowedError') {
+                    errorMessage += 'Permission to use the camera was denied. Please check your browser and system settings.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage += 'No camera was found on this device.';
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    errorMessage += 'The camera might be in use by another application. Please close other apps (Zoom, Teams, etc.) and try again.';
+                } else {
+                    errorMessage += `An unexpected error occurred: ${err.name}. Please ensure you are on localhost and have granted camera permissions.`;
+                }
+                videoError.innerHTML = errorMessage;
+            }
+        }
 
         async function apiCall(endpoint, method = 'GET', data = null) {
             try {
