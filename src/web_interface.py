@@ -490,6 +490,22 @@ class WebInterface:
                 logger.error(f"List face candidates error: {e}")
                 return jsonify({ 'status': 'error', 'message': str(e) }), 500
 
+        @self.app.route('/api/faces/candidates/<filename>', methods=['DELETE'])
+        def delete_face_candidate(filename):
+            """Delete a cropped unknown face candidate by filename"""
+            try:
+                if not self.doorbell_system:
+                    return jsonify({ 'status': 'error', 'message': 'System not initialized' }), 400
+                settings = self.doorbell_system.settings
+                path = settings.CROPPED_FACES_DIR / 'unknown' / filename
+                if not path.exists():
+                    return jsonify({ 'status': 'error', 'message': 'File not found' }), 404
+                path.unlink()
+                return jsonify({ 'status': 'success', 'filename': filename })
+            except Exception as e:
+                logger.error(f"Delete face candidate error: {e}")
+                return jsonify({ 'status': 'error', 'message': str(e) }), 500
+
         @self.app.route('/api/files/cropped/<category>/<filename>')
         def get_cropped_face(category, filename):
             try:

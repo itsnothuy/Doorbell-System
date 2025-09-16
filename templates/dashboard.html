@@ -778,10 +778,14 @@
                  input.style.border = '1px solid #ccc';
                  card.appendChild(input);
 
-                 const btn = document.createElement('button');
-                 btn.className = 'btn btn-success';
-                 btn.textContent = '✅ Label';
-                 btn.onclick = async () => {
+                 const actions = document.createElement('div');
+                 actions.style.display = 'flex';
+                 actions.style.gap = '8px';
+
+                 const labelBtn = document.createElement('button');
+                 labelBtn.className = 'btn btn-success';
+                 labelBtn.textContent = '✅ Label';
+                 labelBtn.onclick = async () => {
                      const name = (input.value || '').trim();
                      if (!name) { alert('Enter a name to label'); return; }
                      const res = await apiCall('faces/label', 'POST', { filename: item.filename, name });
@@ -794,7 +798,24 @@
                          alert(`❌ ${res.message || 'Failed to label'}`);
                      }
                  };
-                 card.appendChild(btn);
+
+                 const removeBtn = document.createElement('button');
+                 removeBtn.className = 'btn btn-danger';
+                 removeBtn.textContent = '🗑️ Remove';
+                 removeBtn.onclick = async () => {
+                     if (!confirm('Remove this candidate?')) return;
+                     const response = await fetch(`/api/faces/candidates/${encodeURIComponent(item.filename)}`, { method: 'DELETE' });
+                     const res = await response.json();
+                     if (res.status === 'success') {
+                         refreshFaceCandidates();
+                     } else {
+                         alert(`❌ ${res.message || 'Failed to remove'}`);
+                     }
+                 };
+
+                 actions.appendChild(labelBtn);
+                 actions.appendChild(removeBtn);
+                 card.appendChild(actions);
 
                  grid.appendChild(card);
              });
