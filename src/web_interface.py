@@ -9,11 +9,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import json
 from werkzeug.utils import secure_filename
 from PIL import Image
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,16 @@ class WebInterface:
         CORS(self.app)
         
         self.doorbell_system = doorbell_system
-        self.setup_routes()
+        self.settings = doorbell_system.settings
+        
+        self._init_routes()
         
         logger.info("Web interface initialized")
     
-    def setup_routes(self):
-        """Setup Flask routes"""
+    def _init_routes(self):
+        """Initialize Flask routes"""
         
+        # UI Route
         @self.app.route('/')
         def index():
             """Main dashboard"""
@@ -330,10 +334,28 @@ class WebInterface:
                     return jsonify({ 'status': 'error', 'message': 'System not initialized' }), 400
 
                 stats = self.doorbell_system.face_manager.get_stats()
+                known_names = stats.get('known_names', [])
+                settings = self.doorbell_system.settings
+
+                # Build a map from slug -> latest filename
+                faces = []
+                unique_names = sorted(list(set(known_names)))
+                try:
+                    files = sorted([p.name for p in settings.KNOWN_FACES_DIR.glob('*.jpg')], reverse=True)
+                except Exception:
+                    files = []
+
+                for name in unique_names:
+                    slug = re.sub(r'\s+', '_', name.strip().lower())
+                    slug = re.sub(r'[^a-z0-9_-]', '', slug)
+                    image_filename = next((fn for fn in files if fn.startswith(slug)), None)
+                    image_url = f"/api/files/known_faces/{image_filename}" if image_filename else None
+                    faces.append({ 'name': name, 'image_url': image_url })
+
                 return jsonify({
                     'status': 'success',
-                    'count': len(stats.get('known_names', [])),
-                    'names': stats.get('known_names', [])
+                    'count': len(faces),
+                    'faces': faces
                 })
             except Exception as e:
                 logger.error(f"List known faces error: {e}")
@@ -526,9 +548,33 @@ class WebInterface:
             except Exception as e:
                 logger.error(f"Label face candidate error: {e}")
                 return jsonify({ 'status': 'error', 'message': str(e) }), 500
-    
-    def run(self, host='0.0.0.0', port=5000, debug=False):
-        """Run the web interface"""
+
+        @self.app.route('/api/files/cropped/<category>/<path:filename>')
+        def get_cropped_image(category, filename):
+            try:
+                if category not in ['unknown', 'known']:
+                    return jsonify({ 'status': 'error', 'message': 'Invalid category' }), 400
+                base = self.doorbell_system.settings.CROPPED_FACES_DIR / category
+                file_path = base / filename
+                if not file_path.exists():
+                    return jsonify({ 'status': 'error', 'message': 'File not found' }), 404
+                return send_file(str(file_path), mimetype='image/jpeg')
+            except Exception as e:
+                logger.error(f"Error serving cropped image {category}/{filename}: {e}", exc_info=True)
+                return jsonify({'status': 'error', 'message': 'File not found'}), 404
+            
+        @self.app.route('/api/files/known_faces/<path:filename>')
+        def get_known_face_image(filename):
+            """Endpoint to serve a known face image file."""
+            try:
+                directory = str(self.doorbell_system.settings.KNOWN_FACES_DIR)
+                return send_from_directory(directory, filename, as_attachment=False)
+            except Exception as e:
+                logger.error(f"Error serving known face image {filename}: {e}", exc_info=True)
+                return jsonify({'status': 'error', 'message': 'File not found'}), 404
+
+    def run(self, host='127.0.0.1', port=5000, debug=True):
+        """Run the Flask web server"""
         try:
             logger.info(f"Starting web interface on http://{host}:{port}")
             self.app.run(host=host, port=port, debug=debug, threaded=True)

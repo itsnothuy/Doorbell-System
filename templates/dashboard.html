@@ -188,6 +188,49 @@
             border-left-color: #e74c3c;
         }
 
+        .known-faces-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .known-face-card {
+            background: rgba(52, 152, 219, 0.08);
+            border: 1px solid rgba(52, 152, 219, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .known-face-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .known-face-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .known-face-card .name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: block;
+            word-wrap: break-word;
+        }
+
+        .known-face-card .btn-danger {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -322,7 +365,7 @@
                     <strong>Known faces:</strong>
                     <button class="btn" onclick="refreshKnownFaces()">🔄 Refresh</button>
                 </div>
-                <ul id="known-faces-list" style="margin-top: 10px; padding-left: 20px;"></ul>
+                <div id="known-faces-grid" class="known-faces-grid"></div>
 
                 <div style="margin-top: 20px;">
                     <h3 style="font-size: 1.1em; margin-bottom: 8px; color:#2c3e50;">Unlabeled face candidates</h3>
@@ -598,27 +641,37 @@
          // ------------------------------
          async function refreshKnownFaces() {
              const res = await apiCall('faces/known');
-             const list = document.getElementById('known-faces-list');
+             const grid = document.getElementById('known-faces-grid');
              if (res.status !== 'success') {
-                 list.innerHTML = '<li style="color:#e74c3c;">Failed to load known faces</li>';
+                 grid.innerHTML = '<p style="color:#e74c3c;">Failed to load known faces</p>';
                  return;
              }
-             if (!res.names || res.names.length === 0) {
-                 list.innerHTML = '<li style="color:#7f8c8d;">No known faces yet</li>';
+             if (!res.faces || res.faces.length === 0) {
+                 grid.innerHTML = '<p style="color:#7f8c8d;">No known faces yet</p>';
                  return;
              }
-             list.innerHTML = '';
-             res.names.forEach(name => {
-                 const li = document.createElement('li');
-                 li.style.marginBottom = '6px';
-                 const btn = document.createElement('button');
-                 btn.className = 'btn btn-danger';
-                 btn.textContent = '🗑️ Remove';
-                 btn.style.marginLeft = '8px';
-                 btn.onclick = () => deleteKnownFace(name);
-                 li.textContent = name;
-                 li.appendChild(btn);
-                 list.appendChild(li);
+             grid.innerHTML = '';
+             res.faces.forEach(face => {
+                 const card = document.createElement('div');
+                 card.className = 'known-face-card';
+
+                 const img = document.createElement('img');
+                 img.src = face.image_url;
+                 img.alt = `Photo of ${face.name}`;
+                 
+                 const nameSpan = document.createElement('span');
+                 nameSpan.className = 'name';
+                 nameSpan.textContent = face.name;
+
+                 const removeBtn = document.createElement('button');
+                 removeBtn.className = 'btn btn-danger';
+                 removeBtn.innerHTML = '🗑️ Remove';
+                 removeBtn.onclick = () => deleteKnownFace(face.name);
+
+                 card.appendChild(img);
+                 card.appendChild(nameSpan);
+                 card.appendChild(removeBtn);
+                 grid.appendChild(card);
              });
          }
 
