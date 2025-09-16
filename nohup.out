@@ -1,0 +1,48 @@
+🌐 Starting Doorbell Security Web Interface...
+/Users/tranhuy/Desktop/Code/Face/venv/lib/python3.11/site-packages/face_recognition_models/__init__.py:7: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_filename
+2025-09-07 07:19:04,965 - INFO - Initializing Doorbell Security System for cloud deployment...
+2025-09-07 07:19:04,965 - INFO - Initializing Doorbell Security System...
+2025-09-07 07:19:04,965 - INFO - Face Manager initialized
+2025-09-07 07:19:04,965 - INFO - Camera Handler initialized
+2025-09-07 07:19:04,966 - ERROR - Telegram bot token not configured
+2025-09-07 07:19:04,966 - WARNING - Telegram notifier not configured
+2025-09-07 07:19:04,966 - INFO - Mock GPIO initialized successfully
+2025-09-07 07:19:04,966 - INFO - Using mock GPIO for macOS development
+2025-09-07 07:19:04,969 - INFO - Web interface initialized
+2025-09-07 07:19:04,969 - INFO - Web interface initialized for testing
+2025-09-07 07:19:04,969 - INFO - System initialized successfully
+2025-09-07 07:19:04,971 - INFO - Web interface initialized
+2025-09-07 07:19:04,971 - INFO - ✅ Cloud deployment ready
+2025-09-07 07:19:04,971 - INFO - Starting web application on port 8000
+ * Tip: There are .env or .flaskenv files present. Do "pip install python-dotenv" to use them.
+ * Serving Flask app 'src.web_interface'
+ * Debug mode: off
+2025-09-07 07:19:04,975 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.183:8000
+2025-09-07 07:19:04,975 - INFO - [33mPress CTRL+C to quit[0m
+2025-09-07 07:19:20,674 - INFO - 192.168.1.183 - - [07/Sep/2025 07:19:20] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:19:20,674 - INFO - 192.168.1.183 - - [07/Sep/2025 07:19:20] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:19:50,673 - INFO - 192.168.1.183 - - [07/Sep/2025 07:19:50] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:19:50,674 - INFO - 192.168.1.183 - - [07/Sep/2025 07:19:50] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:20:20,670 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:20] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:20:20,672 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:20] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:20:31,640 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:31] "GET / HTTP/1.1" 200 -
+2025-09-07 07:20:31,654 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:31] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:20:31,655 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:31] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:20:31,655 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:31] "GET /api/logs HTTP/1.1" 200 -
+2025-09-07 07:20:33,356 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:33] "GET / HTTP/1.1" 200 -
+2025-09-07 07:20:33,372 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:33] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:20:33,372 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:33] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:20:33,373 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:33] "GET /api/logs HTTP/1.1" 200 -
+2025-09-07 07:20:40,515 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:40] "GET / HTTP/1.1" 200 -
+2025-09-07 07:20:40,535 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:40] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:20:40,535 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:40] "GET /api/recent-events HTTP/1.1" 200 -
+2025-09-07 07:20:40,536 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:40] "GET /api/logs HTTP/1.1" 200 -
+2025-09-07 07:20:42,209 - WARNING - No doorbell callback configured
+2025-09-07 07:20:42,210 - INFO - 192.168.1.183 - - [07/Sep/2025 07:20:42] "POST /api/trigger-doorbell HTTP/1.1" 200 -
+2025-09-07 07:21:03,670 - INFO - 192.168.1.183 - - [07/Sep/2025 07:21:03] "GET /api/status HTTP/1.1" 200 -
+2025-09-07 07:21:03,670 - INFO - 192.168.1.183 - - [07/Sep/2025 07:21:03] "GET /api/recent-events HTTP/1.1" 200 -
+./scripts/start-web.sh: line 5: 19794 Killed: 9               python app.py

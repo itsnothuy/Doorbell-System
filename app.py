@@ -15,31 +15,34 @@ sys.path.append(str(project_root))
 
 # Set environment variables for cloud deployment
 os.environ['DEVELOPMENT_MODE'] = 'true'
-os.environ['PORT'] = os.environ.get('PORT', '5000')
+os.environ['PORT'] = os.environ.get('PORT', '8000')
 
 from src.web_interface import create_web_app
 from src.doorbell_security import DoorbellSecuritySystem
+from config.logging_config import setup_logging # Import centralized logging
 
-# Configure logging for cloud
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+# Setup logging early for app.py and define logger immediately
+setup_logging(level=logging.DEBUG) # Configure logging for app.py, no file output here
+logger = logging.getLogger(__name__) # Define logger at module level after setup_logging
 
-logger = logging.getLogger(__name__)
+# Global variable to store initialization error message
+system_init_error_message = None # Initialize as None
 
 # Initialize the doorbell system
 try:
     logger.info("Initializing Doorbell Security System for cloud deployment...")
+    
     doorbell_system = DoorbellSecuritySystem()
+    doorbell_system.start() # Explicitly start the system
     
     # Create Flask app
     app = create_web_app(doorbell_system)
     
     logger.info("✅ Cloud deployment ready")
     
-except Exception as e:
-    logger.error(f"Failed to initialize system: {e}")
+except Exception as init_exception:
+    system_init_error_message = str(init_exception)
+    logger.error(f"Failed to initialize system: {system_init_error_message}")
     # Create a minimal app for error display
     from flask import Flask, jsonify
     app = Flask(__name__)
@@ -48,7 +51,7 @@ except Exception as e:
     def error():
         return jsonify({
             'status': 'error',
-            'message': f'System initialization failed: {str(e)}',
+            'message': f'System initialization failed: {system_init_error_message}',
             'note': 'This is a development/testing deployment. Some features may not work without proper hardware.'
         })
 

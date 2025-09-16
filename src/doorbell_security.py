@@ -25,21 +25,30 @@ from src.telegram_notifier import TelegramNotifier
 from src.gpio_handler import GPIOHandler
 from src.platform_detector import platform_detector
 from config.settings import Settings
+from config.logging_config import setup_logging # Import centralized logging
+import numpy as np
+
+# Define logger for this module immediately
+logger = logging.getLogger(__name__)
 
 # Import web interface for development mode
 if platform_detector.get_gpio_config().get('web_interface', False):
     from src.web_interface import WebInterface
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(project_root / 'data/logs/doorbell.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+# Configure logging (removed old commented out block)
+# logging.basicConfig(
+#     level=logging.DEBUG, # Changed from INFO to DEBUG again
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=[
+#         # logging.FileHandler(project_root / 'data/logs/doorbell.log'), # Temporarily removed for console focus
+#         logging.StreamHandler()
+#     ]
+# )
+# logger = logging.getLogger(__name__)
+
+# Set logging level for specific modules to DEBUG for detailed output
+# logging.getLogger('src.camera_handler').setLevel(logging.DEBUG)
+# logging.getLogger('src.platform_detector').setLevel(logging.DEBUG)
 
 
 class DoorbellSecuritySystem:
@@ -84,6 +93,8 @@ class DoorbellSecuritySystem:
             self.face_manager.load_blacklist_faces()
             
             # Initialize hardware
+            print(f"DEBUG: Calling CameraHandler.initialize() with config: {platform_detector.get_camera_config()}") # Added aggressive debug print
+            logger.debug(f"Camera config before CameraHandler.initialize(): {platform_detector.get_camera_config()}") # Keep logger debug
             self.camera.initialize()
             self.gpio.setup_doorbell_button(self.on_doorbell_pressed)
             
@@ -101,7 +112,7 @@ class DoorbellSecuritySystem:
                     kwargs={
                         'host': '0.0.0.0' if deployment_config['platform'] != 'local' else '127.0.0.1',
                         'port': deployment_config['port'],
-                        'debug': deployment_config['platform'] == 'local'
+                        'debug': False # Set to False when running in a separate thread to avoid ValueError
                     },
                     daemon=True
                 )
@@ -184,10 +195,32 @@ class DoorbellSecuritySystem:
             
             # Analyze each detected face
             results = []
+            face_locations = self.face_manager.detect_face_locations(image)
             for i, face_encoding in enumerate(faces):
                 result = self.face_manager.identify_face(face_encoding)
                 results.append(result)
                 logger.info(f"Face {i+1}: {result['status']} - {result.get('name', 'Unknown')}")
+
+            # Persist cropped faces for labeling UI
+            try:
+                if face_locations:
+                    from PIL import Image
+                    pil_image = Image.fromarray(image) if isinstance(image, np.ndarray) else image
+                    for idx, loc in enumerate(face_locations):
+                        top, right, bottom, left = loc
+                        face_img = pil_image.crop((left, top, right, bottom))
+                        ts = timestamp.strftime('%Y%m%d_%H%M%S')
+                        status = results[idx]['status'] if idx < len(results) else 'unknown'
+                        name = results[idx].get('name') if idx < len(results) else None
+                        subdir = 'known' if status == 'known' and name else 'unknown'
+                        base_name = name.lower().replace(' ', '_') if name else 'unknown'
+                        out_dir = self.settings.CROPPED_FACES_DIR / subdir
+                        out_dir.mkdir(parents=True, exist_ok=True)
+                        out_path = out_dir / f"{base_name}_{ts}_{idx+1}.jpg"
+                        face_img.save(out_path, 'JPEG', quality=85)
+                        logger.debug(f"Saved cropped face: {out_path}")
+            except Exception as crop_err:
+                logger.warning(f"Failed to persist cropped faces: {crop_err}")
             
             # Determine overall response based on all faces
             response = self._determine_response(results)
@@ -425,6 +458,9 @@ class DoorbellSecuritySystem:
 
 def main():
     """Main entry point"""
+    project_root = Path(__file__).parent.parent
+    # setup_logging(level=logging.DEBUG, log_file_path=project_root / 'data/logs/doorbell.log') # Removed centralized logging for direct execution, as app.py will handle it
+
     try:
         system = DoorbellSecuritySystem()
         system.start()

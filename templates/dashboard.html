@@ -291,6 +291,39 @@
                 </div>
             </div>
 
+            <!-- Known Faces Management -->
+            <div class="card">
+                <h2>🧑‍🤝‍🧑 Known Faces</h2>
+                <div style="margin-bottom: 12px;">
+                    <strong>Add from file:</strong>
+                    <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <input id="known-name-input" type="text" placeholder="Person name" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                        <input id="known-file-input" type="file" accept="image/*" style="padding: 8px;">
+                        <button class="btn btn-success" onclick="uploadKnownFace()">⬆️ Upload Known Face</button>
+                    </div>
+                </div>
+
+                <div style="margin: 12px 0;">
+                    <strong>Add from current camera frame:</strong>
+                    <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <input id="known-name-camera-input" type="text" placeholder="Person name" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                        <button class="btn" onclick="addKnownFromCamera()">📸 Add From Camera</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 10px;">
+                    <strong>Known faces:</strong>
+                    <button class="btn" onclick="refreshKnownFaces()">🔄 Refresh</button>
+                </div>
+                <ul id="known-faces-list" style="margin-top: 10px; padding-left: 20px;"></ul>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="font-size: 1.1em; margin-bottom: 8px; color:#2c3e50;">Unlabeled face candidates</h3>
+                    <button class="btn" onclick="refreshFaceCandidates()">🔄 Refresh Candidates</button>
+                    <div id="candidates-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:12px; margin-top:12px;"></div>
+                </div>
+            </div>
+
             <!-- Recent Events -->
             <div class="card">
                 <h2>📋 Recent Events</h2>
@@ -317,8 +350,10 @@
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             refreshStatus();
+            refreshKnownFaces();
             refreshEvents();
             refreshLogs();
+            refreshFaceCandidates();
             
             // Auto-refresh every 30 seconds
             updateInterval = setInterval(() => {
@@ -520,6 +555,160 @@
                 container.scrollTop = container.scrollHeight;
             }
         }
+
+         // ------------------------------
+         // Known Faces Management
+         // ------------------------------
+         async function refreshKnownFaces() {
+             const res = await apiCall('faces/known');
+             const list = document.getElementById('known-faces-list');
+             if (res.status !== 'success') {
+                 list.innerHTML = '<li style="color:#e74c3c;">Failed to load known faces</li>';
+                 return;
+             }
+             if (!res.names || res.names.length === 0) {
+                 list.innerHTML = '<li style="color:#7f8c8d;">No known faces yet</li>';
+                 return;
+             }
+             list.innerHTML = '';
+             res.names.forEach(name => {
+                 const li = document.createElement('li');
+                 li.style.marginBottom = '6px';
+                 const btn = document.createElement('button');
+                 btn.className = 'btn btn-danger';
+                 btn.textContent = '🗑️ Remove';
+                 btn.style.marginLeft = '8px';
+                 btn.onclick = () => deleteKnownFace(name);
+                 li.textContent = name;
+                 li.appendChild(btn);
+                 list.appendChild(li);
+             });
+         }
+
+         async function uploadKnownFace() {
+             const nameInput = document.getElementById('known-name-input');
+             const fileInput = document.getElementById('known-file-input');
+             const name = (nameInput.value || '').trim();
+             const file = fileInput.files && fileInput.files[0];
+             if (!name) { alert('Please enter a name'); return; }
+             if (!file) { alert('Please select an image file'); return; }
+
+             const formData = new FormData();
+             formData.append('name', name);
+             formData.append('file', file);
+
+             try {
+                 const response = await fetch('/api/faces/known/upload', {
+                     method: 'POST',
+                     body: formData
+                 });
+                 const res = await response.json();
+                 if (res.status === 'success') {
+                     alert(`✅ Added known face: ${res.name}`);
+                     nameInput.value = '';
+                     fileInput.value = '';
+                     refreshKnownFaces();
+                     refreshStatus();
+                 } else {
+                     alert(`❌ ${res.message || 'Failed to add face'}`);
+                 }
+             } catch (e) {
+                 alert(`❌ ${e.message}`);
+             }
+         }
+
+         async function addKnownFromCamera() {
+             const nameInput = document.getElementById('known-name-camera-input');
+             const name = (nameInput.value || '').trim();
+             if (!name) { alert('Please enter a name'); return; }
+
+             const res = await apiCall('faces/known/add-from-camera', 'POST', { name });
+             if (res.status === 'success') {
+                 alert(`✅ Added from camera: ${res.name}`);
+                 nameInput.value = '';
+                 refreshKnownFaces();
+                 refreshStatus();
+             } else {
+                 alert(`❌ ${res.message || 'Failed to add from camera'}`);
+             }
+         }
+
+         async function deleteKnownFace(name) {
+             if (!confirm(`Remove known face: ${name}?`)) return;
+             try {
+                 const response = await fetch(`/api/faces/known/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                 const res = await response.json();
+                 if (res.status === 'success') {
+                     refreshKnownFaces();
+                     refreshStatus();
+                 } else {
+                     alert(`❌ ${res.message || 'Failed to remove'}`);
+                 }
+             } catch (e) {
+                 alert(`❌ ${e.message}`);
+             }
+         }
+
+         async function refreshFaceCandidates() {
+             const grid = document.getElementById('candidates-grid');
+             grid.innerHTML = '<p style="color:#7f8c8d;">Loading...</p>';
+             const res = await apiCall('faces/candidates');
+             if (res.status !== 'success') {
+                 grid.innerHTML = '<p style="color:#e74c3c;">Failed to load candidates</p>';
+                 return;
+             }
+             if (!res.items || res.items.length === 0) {
+                 grid.innerHTML = '<p style="color:#7f8c8d;">No candidates yet. Trigger doorbell to capture.</p>';
+                 return;
+             }
+             grid.innerHTML = '';
+             res.items.forEach(item => {
+                 const card = document.createElement('div');
+                 card.style.background = 'rgba(52, 152, 219, 0.08)';
+                 card.style.border = '1px solid rgba(52, 152, 219, 0.2)';
+                 card.style.borderRadius = '8px';
+                 card.style.padding = '8px';
+                 card.style.display = 'flex';
+                 card.style.flexDirection = 'column';
+                 card.style.gap = '6px';
+
+                 const img = document.createElement('img');
+                 img.src = item.path;
+                 img.style.width = '100%';
+                 img.style.borderRadius = '6px';
+                 img.style.objectFit = 'cover';
+                 img.alt = item.filename;
+                 card.appendChild(img);
+
+                 const input = document.createElement('input');
+                 input.type = 'text';
+                 input.placeholder = 'Enter name';
+                 input.style.padding = '8px';
+                 input.style.borderRadius = '6px';
+                 input.style.border = '1px solid #ccc';
+                 card.appendChild(input);
+
+                 const btn = document.createElement('button');
+                 btn.className = 'btn btn-success';
+                 btn.textContent = '✅ Label';
+                 btn.onclick = async () => {
+                     const name = (input.value || '').trim();
+                     if (!name) { alert('Enter a name to label'); return; }
+                     const res = await apiCall('faces/label', 'POST', { filename: item.filename, name });
+                     if (res.status === 'success') {
+                         alert(`Labeled as ${res.name}`);
+                         refreshKnownFaces();
+                         refreshStatus();
+                         refreshFaceCandidates();
+                     } else {
+                         alert(`❌ ${res.message || 'Failed to label'}`);
+                     }
+                 };
+                 card.appendChild(btn);
+
+                 grid.appendChild(card);
+             });
+         }
     </script>
 </body>
 </html>
