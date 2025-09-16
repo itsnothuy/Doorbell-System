@@ -522,19 +522,45 @@ class WebInterface:
                 if not src_path.exists():
                     return jsonify({ 'status': 'error', 'message': 'Source file not found' }), 404
 
-                # Move to known_faces with slug
+                # Prepare destination path
                 slug = _slugify_name(person_name)
                 ts = datetime.now().strftime('%Y%m%d_%H%M%S')
                 dest_filename = f"{slug}_{ts}.jpg"
                 dest_path = settings.KNOWN_FACES_DIR / dest_filename
 
-                # Ensure RGB and save
+                # Load cropped face and upscale if too small to improve detection
                 img = Image.open(src_path).convert('RGB')
-                img.save(dest_path, 'JPEG', quality=85)
+                try:
+                    width, height = img.size
+                    min_side = min(width, height)
+                    if min_side < 180:
+                        scale = max(1.0, 220.0 / float(min_side))
+                        new_size = (int(width * scale), int(height * scale))
+                        img = img.resize(new_size, Image.BILINEAR)
+                except Exception:
+                    pass
+
+                # Save processed image
+                img.save(dest_path, 'JPEG', quality=90)
 
                 # Update database
                 success = self.doorbell_system.face_manager.add_known_face(dest_path, person_name)
                 if not success:
+                    # Second attempt: slightly blur/downscale then retry (handles noisy crops)
+                    try:
+                        retry_img = img.resize((max(256, img.size[0] // 2), max(256, img.size[1] // 2)), Image.BICUBIC)
+                        retry_img.save(dest_path, 'JPEG', quality=90)
+                        success = self.doorbell_system.face_manager.add_known_face(dest_path, person_name)
+                    except Exception:
+                        success = False
+
+                if not success:
+                    # Cleanup on failure
+                    try:
+                        if dest_path.exists():
+                            dest_path.unlink()
+                    except Exception:
+                        pass
                     return jsonify({ 'status': 'error', 'message': 'No face found while adding' }), 400
 
                 # Remove the candidate after successful labeling
