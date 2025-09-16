@@ -781,16 +781,21 @@
 
                  const actions = document.createElement('div');
                  actions.style.display = 'grid';
-                 actions.style.gridTemplateColumns = '1fr 1fr';
-                 actions.style.gap = '10px';
+                 actions.style.gridTemplateColumns = '1fr auto';
+                 actions.style.gap = '2px';
                  actions.style.marginTop = '4px';
+                 actions.style.padding = '0';
+                 actions.style.boxSizing = 'border-box';
+                 actions.style.alignItems = 'stretch';
 
                  const labelBtn = document.createElement('button');
                  labelBtn.className = 'btn btn-success';
-                 labelBtn.textContent = '✅ Label';
+                 labelBtn.textContent = '✅ Name';
                  labelBtn.style.width = '100%';
                  labelBtn.style.margin = '0';
                  labelBtn.style.boxShadow = 'none';
+                 labelBtn.style.borderRadius = '10px';
+                 labelBtn.style.textAlign = 'center';
                  labelBtn.onclick = async () => {
                      const name = (input.value || '').trim();
                      if (!name) { alert('Enter a name to label'); return; }
@@ -807,10 +812,16 @@
 
                  const removeBtn = document.createElement('button');
                  removeBtn.className = 'btn btn-danger';
-                 removeBtn.textContent = '🗑️ Remove';
-                 removeBtn.style.width = '100%';
+                 removeBtn.textContent = '🗑️';
+                 removeBtn.style.width = '44px';
+                 removeBtn.style.aspectRatio = '1';
+                 removeBtn.style.padding = '0';
                  removeBtn.style.margin = '0';
                  removeBtn.style.boxShadow = 'none';
+                 removeBtn.style.borderRadius = '10px';
+                 removeBtn.style.display = 'grid';
+                 removeBtn.style.placeItems = 'center';
+                 removeBtn.style.textAlign = 'center';
                  removeBtn.onclick = async () => {
                      if (!confirm('Remove this candidate?')) return;
                      const response = await fetch(`/api/faces/candidates/${encodeURIComponent(item.filename)}`, { method: 'DELETE' });
