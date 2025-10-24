@@ -232,7 +232,8 @@ class FaceDetectionWorker(PipelineWorker):
 **Goal**: Refactor notifications into enrichment pipeline
 
 **Files to Migrate/Implement**:
-- `src/telegram_notifier.py` → `src/enrichment/telegram_notifier.py`
+- `src/telegram_notifier.py` → `src/enrichment/notification_handler.py`
+- `src/enrichment/alert_manager.py`
 - `src/enrichment/web_events.py`
 - `src/enrichment/__init__.py`
 - `tests/test_enrichment.py`

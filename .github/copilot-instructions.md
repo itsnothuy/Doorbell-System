@@ -22,7 +22,7 @@ You are working on the **Doorbell Security System**, an AI-powered privacy-first
 - **Communication**: Queue-based messaging (inspired by ZeroMQ)
 - **Hardware**: RPi.GPIO, PiCamera2 (Raspberry Pi)
 - **Web**: Flask API with real-time event streaming
-- **Messaging**: python-telegram-bot
+- **Notifications**: Internal alert system with web interface
 - **Storage**: SQLite for event tracking
 - **Deployment**: Docker, Docker Compose
 - **CI/CD**: GitHub Actions
@@ -57,7 +57,8 @@ doorbell-system/
 │   │   ├── event_database.py         # Event storage (SQLite)
 │   │   └── face_database.py          # Face encoding management
 │   ├── enrichment/                   # Event enrichment processors
-│   │   ├── telegram_notifier.py      # Telegram notification enrichment
+│   │   ├── notification_handler.py   # Internal notification system
+│   │   ├── alert_manager.py          # Alert processing and routing
 │   │   └── web_events.py             # Web interface event streaming
 │   ├── web_interface.py              # Flask web application
 │   └── platform_detector.py         # Platform detection utilities
@@ -470,7 +471,8 @@ Use conventional commit format:
     - Data retention policies
 
 11. **PR #11**: Enrichment Processors
-    - Refactor `src/telegram_notifier.py` → `src/enrichment/telegram_notifier.py`
+    - Refactor `src/telegram_notifier.py` → `src/enrichment/notification_handler.py`
+    - Implement `src/enrichment/alert_manager.py`
     - Implement `src/enrichment/web_events.py`
     - Plugin architecture for enrichments
     - Rate limiting and filtering
