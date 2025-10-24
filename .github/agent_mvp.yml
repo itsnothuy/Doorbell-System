@@ -1,0 +1,258 @@
+name: "MVP Build Task (Coding Agent)"
+description: "Delegate a slice to the GitHub Copilot coding agent to implement, test, and open a PR"
+title: "[Agent][MVP] Implement slice: "
+labels: ["agent", "mvp"]
+assignees: ["copilot"]
+# Optionally associate with a project/milestone
+# projects:
+#   - "your-org/1"
+# milestone: "0.1.0"
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## What this does
+        This task delegates an implementation slice to the **GitHub Copilot coding agent**.
+        The agent will (a) read `.github/copilot-instructions.md` and any `.github/instructions/*.instructions.md`,
+        (b) plan the work, (c) create a branch, (d) run builds/lints/tests in a VM, and (e) open a PR with a summary and follow-ups checklist.
+        See: repository custom instructions & best practices for Copilot tasks.  
+        - Instructions files: `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`  
+        - Issue form schema: required fields/validations/checklists are enforced here.
+        - The agent **must** respect ADRs, security/privacy policy, and performance budgets.
+
+  # SCOPE & SLICE
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / slice
+      description: >-
+        Describe exactly what the agent should build in this PR (single slice only).
+        Link files/dirs and acceptance criteria at a high level.
+      placeholder: >
+        e.g., Implement Real-time Embeddings Maintainer -> Face pipeline fan-out,
+        wire FaceRealTimeProcessor, publish sub_label, add config flags, tests & docs.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: slice_type
+    attributes:
+      label: Slice type
+      description: Which subsystem does this touch?
+      multiple: false
+      options:
+        - Camera ingest (ffmpeg/go2rtc, shared memory)
+        - Detection (detector plugins: ONNX/TensorRT/EdgeTPU/OpenVINO)
+        - Tracking (object lifecycle, events)
+        - Face Recognition (YuNet + ArcFace/FaceNet, alignment, scoring)
+        - GenAI descriptions (OpenAI/Gemini/Ollama adapter & prompts)
+        - API & UI (FastAPI endpoints, web UI wiring)
+        - Database/Embeddings (SQLite + vector index, models cache)
+        - Notifications & MQTT
+        - Docker/build & images
+        - CI/CD & Release Engineering
+        - Observability (logging/metrics/traces)
+        - Security & Privacy hardening
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: components
+    attributes:
+      label: Components touched
+      options:
+        - label: Python backend
+        - label: Detector plugins
+        - label: Realtime processors
+        - label: API server / routes
+        - label: Web UI
+        - label: SQLite / migrations
+        - label: Build/Docker
+        - label: CI workflows
+        - label: Docs / ADRs
+
+  # ARCHITECTURE & ADRs
+  - type: textarea
+    id: architecture_refs
+    attributes:
+      label: Architecture & ADRs to follow
+      description: List ADRs and design docs this slice must adhere to.
+      placeholder: |
+        ADR 001: Modular Monolith
+        ADR 002: Face Recognition (YuNet + ArcFace/FaceNet; cosine, thresholds, blur penalty)
+        ADR 003: GenAI (descriptions only; provider-agnostic; not for identification)
+        ADR 004: Testing Strategy (unit+integration; golden samples; hermetic CI)
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_functional
+    attributes:
+      label: Non-functional requirements (NFRs)
+      description: Latency/CPU/GPU budgets, memory limits, startup time, cold/warm path, reliability goals, observability signals.
+      placeholder: |
+        * Detect-stream FPS >= 5 on x86_64 w/o GPU; <= 25% CPU per camera
+        * Face RT pipeline p95 < 120ms per person update
+        * Memory < 400MB incremental
+        * Log keys and metrics to emit; tracing spans to add
+
+  # FEATURE FLAGS, CONFIG, SECRETS
+  - type: checkboxes
+    id: feature_flags
+    attributes:
+      label: Feature flag & config changes
+      options:
+        - label: Add a feature flag default OFF; enable per camera in config
+        - label: Backward compatible config; migration note in CHANGELOG
+        - label: Safe to rollback by toggling flag
+        - label: Document flags in docs/config reference
+
+  - type: checkboxes
+    id: genai_provider
+    attributes:
+      label: GenAI provider (if applicable)
+      options:
+        - label: OpenAI (requires OPENAI_API_KEY secret)
+        - label: Google Gemini (requires GEMINI_API_KEY)
+        - label: Ollama (requires OLLAMA_BASE_URL)
+        - label: Not applicable (this slice should not call GenAI)
+  - type: checkboxes
+    id: secrets_ready
+    attributes:
+      label: Secrets readiness
+      options:
+        - label: Confirm required secrets exist in repo/org environments for CI
+        - label: Confirm no secrets are hardcoded or leaked in logs
+
+  # SECURITY, PRIVACY, COMPLIANCE
+  - type: checkboxes
+    id: sec_privacy
+    attributes:
+      label: Security & privacy requirements
+      options:
+        - label: No telemetry added; privacy posture honored
+        - label: Avoid PII in logs; redact faces unless user enabled
+        - label: Bandit/Semgrep static checks pass
+        - label: Container scan (Trivy/Grype) clean for new images
+        - label: 3P dependencies pinned; supply-chain review added to PR
+
+  # TESTING & CI
+  - type: checkboxes
+    id: tests_required
+    attributes:
+      label: Tests to include
+      options:
+        - label: Unit tests
+        - label: Integration tests (end-to-end path for this slice)
+        - label: Golden sample tests (images/clips with expected outputs)
+        - label: Performance smoke (assert latency/CPU budget)
+        - label: Contract/API tests (if endpoints added)
+        - label: UI tests (if UI touched)
+  - type: textarea
+    id: test_matrix
+    attributes:
+      label: Test matrix & datasets
+      description: OS/arch/hardware targets; dataset references for golden tests; how to run locally & in CI.
+      placeholder: |
+        * Runners: ubuntu-latest x86_64; optional arm64
+        * GPU matrix (if applicable): CUDA 12.x / TensorRT; Coral EdgeTPU
+        * Datasets: tests/assets/faces/* with expected sub_label; synthetic clips for tracker
+        * Commands: `make test`, `pytest -m e2e`
+      render: bash
+
+  - type: checkboxes
+    id: ci_requirements
+    attributes:
+      label: CI requirements
+      options:
+        - label: Lint + typecheck (ruff/mypy) green
+        - label: Unit + integration jobs green
+        - label: Build image(s) succeed
+        - label: Security scans succeed
+        - label: Artifact upload (reports, coverage) present
+
+  # ROLLOUT
+  - type: textarea
+    id: rollout
+    attributes:
+      label: Rollout plan
+      description: How to enable, monitor, and verify success; canary steps; metrics/alerts.
+      placeholder: |
+        Phased rollout: flag off -> single camera -> small set -> all
+        Dashboards: latency, CPU, face recognition confidence
+        Alerting: error rates, backlog depth
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback plan
+      description: One-command disable, revert PR, and data migration rollback if any.
+      placeholder: |
+        * Disable feature flag in config; restart service
+        * Revert PR #<id>; database migration N down
+    validations:
+      required: true
+
+  # PR OUTPUT & FOLLOW-UPS
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of Done (agent must check all)
+      options:
+        - label: Code implements the slice end-to-end
+        - label: Tests (unit/integration/perf) added and passing
+        - label: CI green (lint, type, unit, integration, security scans)
+        - label: Perf budget validated; attach report
+        - label: No telemetry; privacy posture honored
+        - label: Docs updated (README/config reference/runbook)
+        - label: CHANGELOG entry and release notes added
+        - label: PR summary includes follow-up tasks and risks
+        - label: Rollback plan documented and verified
+    validations:
+      required: true
+
+  # REVIEW & LOGISTICS
+  - type: input
+    id: reviewers
+    attributes:
+      label: Reviewers
+      description: GitHub handles or CODEOWNERS groups to request review from.
+      placeholder: "@backend-owner @ml-owner"
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk level
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+  - type: input
+    id: estimate
+    attributes:
+      label: Effort estimate
+      description: Size or time (S/M/L or hours).
+      placeholder: "M (1–2 days)"
+  - type: input
+    id: due
+    attributes:
+      label: Target date (YYYY-MM-DD)
+      description: Optional target for this slice.
+
+  # FINAL INSTRUCTIONS TO THE AGENT
+  - type: markdown
+    attributes:
+      value: |
+        ### Agent execution checklist
+        1) Read `.github/copilot-instructions.md` and any `.github/instructions/*.instructions.md`.
+        2) Create a plan in the PR description (bullet list of steps, risks, test plan).
+        3) Create a feature branch, commit in small logical chunks with descriptive messages.
+        4) Run full CI locally/VM; include perf evidence if NFRs defined.
+        5) Open a Draft PR early; convert to Ready when green and DoD satisfied.
+        6) Add follow-ups list if scope reveals further work.
+        7) Ensure no secrets are leaked; privacy posture is honored.
+        8) Assign reviewers and request reviews as needed.
+        9) Notify the team/channel about the PR for visibility.

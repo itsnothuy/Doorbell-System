@@ -1,0 +1,194 @@
+name: "🚪 Doorbell System Enhancement"
+description: "Enhance the doorbell security system with new features or improvements"
+title: "[ENHANCEMENT] "
+labels: ["enhancement", "doorbell-system"]
+projects: ["Doorbell Security System"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to the Doorbell Security System! Please provide detailed information about your enhancement request.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: "System Component"
+      description: "Which component does this enhancement affect?"
+      options:
+        - Face Recognition (face_manager.py)
+        - Camera System (camera_handler.py)
+        - GPIO/Hardware (gpio_handler.py)
+        - Web Interface (web_interface.py)
+        - Telegram Integration (telegram_notifier.py)
+        - Main System (doorbell_security.py)
+        - Configuration Management
+        - Documentation
+        - Testing Infrastructure
+        - CI/CD Pipeline
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: enhancement-description
+    attributes:
+      label: "Enhancement Description"
+      description: "Provide a clear and detailed description of the enhancement you'd like to see"
+      placeholder: "Describe the enhancement..."
+      value: |
+        ## Summary
+        Brief summary of the enhancement
+
+        ## Problem Statement
+        What problem does this enhancement solve?
+
+        ## Proposed Solution
+        How would you like this enhancement to work?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority Level"
+      description: "How important is this enhancement?"
+      options:
+        - Low - Nice to have
+        - Medium - Valuable improvement
+        - High - Important for functionality
+        - Critical - Essential for system operation
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: enhancement-type
+    attributes:
+      label: "Enhancement Type"
+      description: "What type of enhancement is this?"
+      options:
+        - label: "🎯 New Feature - Adds new functionality"
+        - label: "⚡ Performance Improvement - Makes existing features faster/more efficient"
+        - label: "🔒 Security Enhancement - Improves system security"
+        - label: "🎨 UI/UX Improvement - Enhances user interface or experience"
+        - label: "🔧 Developer Experience - Improves development workflow"
+        - label: "📚 Documentation Enhancement - Improves documentation"
+        - label: "🧪 Testing Enhancement - Improves test coverage or quality"
+        - label: "🔄 Refactoring - Code structure improvement without changing functionality"
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: "Use Cases"
+      description: "Describe specific use cases where this enhancement would be valuable"
+      placeholder: |
+        1. Use case 1: ...
+        2. Use case 2: ...
+        3. Use case 3: ...
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: "Acceptance Criteria"
+      description: "Define what needs to be accomplished for this enhancement to be considered complete"
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+        - [ ] Tests written and passing
+        - [ ] Documentation updated
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: "Technical Implementation Details"
+      description: "If you have ideas about implementation, please share them"
+      placeholder: |
+        ## Implementation Approach
+        - How this could be implemented
+        - Which files would need to be modified
+        - Any new dependencies required
+        - Performance considerations
+        - Security considerations
+
+  - type: checkboxes
+    id: affected-platforms
+    attributes:
+      label: "Affected Platforms"
+      description: "Which platforms should this enhancement support?"
+      options:
+        - label: "🥧 Raspberry Pi"
+        - label: "🍎 macOS"
+        - label: "🐧 Linux"
+        - label: "🐳 Docker"
+        - label: "☁️ Web Interface"
+        - label: "📱 Mobile (via web)"
+
+  - type: textarea
+    id: testing-strategy
+    attributes:
+      label: "Testing Strategy"
+      description: "How should this enhancement be tested?"
+      placeholder: |
+        ## Testing Approach
+        - Unit tests needed
+        - Integration tests needed
+        - Manual testing scenarios
+        - Performance testing requirements
+        - Security testing considerations
+
+  - type: checkboxes
+    id: breaking-changes
+    attributes:
+      label: "Breaking Changes"
+      description: "Could this enhancement introduce breaking changes?"
+      options:
+        - label: "⚠️ This enhancement may introduce breaking changes"
+        - label: "🔄 This enhancement requires configuration changes"
+        - label: "📦 This enhancement requires new dependencies"
+        - label: "🔧 This enhancement requires database/data migration"
+
+  - type: textarea
+    id: alternative-solutions
+    attributes:
+      label: "Alternative Solutions"
+      description: "Have you considered any alternative solutions or workarounds?"
+      placeholder: "Describe any alternative approaches you've considered..."
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: "Additional Context"
+      description: "Add any other context, screenshots, or examples that would help understand the enhancement"
+      placeholder: |
+        ## Additional Information
+        - Screenshots or mockups
+        - Related issues or discussions
+        - External resources or references
+        - Timeline considerations
+
+  - type: checkboxes
+    id: contribution-willingness
+    attributes:
+      label: "Contribution"
+      description: "Are you willing to contribute to implementing this enhancement?"
+      options:
+        - label: "🙋‍♂️ I'm willing to implement this enhancement"
+        - label: "🤝 I can help with implementation if guided"
+        - label: "🧪 I can help with testing"
+        - label: "📚 I can help with documentation"
+        - label: "💡 I'm providing the idea only"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      description: "Please verify before submitting"
+      options:
+        - label: "I have searched existing issues to ensure this enhancement hasn't been requested"
+        - label: "I have provided clear acceptance criteria"
+        - label: "I have considered the impact on existing functionality"
+        - label: "I have thought about testing requirements"
+        - label: "I understand this is a privacy-first system with local processing requirements"

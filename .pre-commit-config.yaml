@@ -1,0 +1,197 @@
+repos:
+  # Python formatting and linting
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        name: ruff (Python linter)
+        args: [--fix, --exit-non-zero-on-fix]
+        types: [python]
+      - id: ruff-format
+        name: ruff (Python formatter)
+        types: [python]
+
+  # Additional Python tools
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        name: black (Python formatter - backup)
+        language_version: python3
+        args: [--line-length=100]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.6.1
+    hooks:
+      - id: mypy
+        name: mypy (Python type checker)
+        additional_dependencies: 
+          - types-requests
+          - types-Pillow
+          - types-PyYAML
+          - types-python-dateutil
+        args: [--ignore-missing-imports, --show-error-codes]
+        exclude: ^(tests/|docs/)
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: bandit (Python security linter)
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+        exclude: ^tests/
+
+  # General code quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+        args: [--multi]
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-xml
+        name: Check XML syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: check-docstring-first
+        name: Check docstring is first
+      - id: check-executables-have-shebangs
+        name: Check that executables have shebangs
+      - id: check-shebang-scripts-are-executable
+        name: Check that scripts with shebangs are executable
+      - id: debug-statements
+        name: Debug Statements (Python)
+      - id: detect-private-key
+        name: Detect Private Key
+      - id: fix-byte-order-marker
+        name: Fix byte order marker
+      - id: mixed-line-ending
+        name: Mixed line ending
+
+  # Python imports
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (Python import sorter)
+        args: [--profile, black, --line-length, "100"]
+
+  # Documentation
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-use-type-annotations
+        name: Use type annotations
+      - id: python-check-blanket-noqa
+        name: Check blanket noqa
+      - id: python-check-blanket-type-ignore
+        name: Check blanket type ignore
+      - id: python-no-log-warn
+        name: Use logging.warning instead of logging.warn
+      - id: python-check-mock-methods
+        name: Check mock methods
+      - id: rst-backticks
+        name: RST backticks
+      - id: rst-directive-colons
+        name: RST directive colons
+      - id: rst-inline-touching-normal
+        name: RST inline touching normal
+      - id: text-unicode-replacement-char
+        name: Unicode replacement char
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        name: Lint Dockerfiles
+        args: [--ignore, DL3008, --ignore, DL3009]
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        name: prettier (YAML/JSON/Markdown formatter)
+        files: \.(yaml|yml|json|md)$
+        exclude: ^(templates/|static/)
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.5
+    hooks:
+      - id: shellcheck
+        name: shellcheck (Shell script linter)
+        args: [--severity=warning]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets (Secrets detection)
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+  # Commit message formatting
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        name: Conventional Commit
+        stages: [commit-msg]
+        args: [
+          # Types allowed
+          "build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "revert", "style", "test",
+          # Scopes allowed (optional)
+          "--optional-scopes", 
+          "core", "face-recognition", "hardware", "notifications", "web-ui", "config", "docs", "tests", "infrastructure"
+        ]
+
+  # Python dependency checking
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        name: safety (Python dependency vulnerability check)
+        args: [--ignore=51668]  # Ignore specific CVE if needed
+
+  # License headers (optional - uncomment if needed)
+  # - repo: https://github.com/Lucas-C/pre-commit-hooks
+  #   rev: v1.5.4
+  #   hooks:
+  #     - id: insert-license
+  #       files: \.py$
+  #       args:
+  #         - --license-filepath
+  #         - .license-header.txt
+  #         - --comment-style
+  #         - "#"
+
+# Configuration for specific hooks
+ci:
+  autofix_commit_msg: |
+    🤖 [pre-commit.ci] auto fixes from pre-commit hooks
+    
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: 'master'
+  autoupdate_commit_msg: '🤖 [pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

@@ -1,0 +1,365 @@
+name: "🏗️ Architectural Decision Record (ADR)"
+description: "Propose or document an architectural decision"
+title: "[ADR] "
+labels: ["architecture", "adr", "design"]
+projects: ["Doorbell Security System"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🏗️ Architectural Decision Record (ADR)
+        
+        Use this template to propose or document significant architectural decisions for the Doorbell Security System.
+        
+        ADRs help us track the reasoning behind important design choices and their trade-offs.
+
+  - type: input
+    id: adr-number
+    attributes:
+      label: "ADR Number"
+      description: "Sequential number for this ADR (check existing ADRs in docs/adr/)"
+      placeholder: "e.g., 001, 002, 003..."
+    validations:
+      required: true
+
+  - type: input
+    id: adr-title
+    attributes:
+      label: "Decision Title"
+      description: "Short, descriptive title for this architectural decision"
+      placeholder: "e.g., Use HOG model for face detection on Raspberry Pi"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: "Status"
+      description: "What is the status of this decision?"
+      options:
+        - Proposed - Under consideration
+        - Accepted - Decided and implemented
+        - Deprecated - No longer relevant
+        - Superseded - Replaced by a newer decision
+    validations:
+      required: true
+
+  - type: dropdown
+    id: decision-area
+    attributes:
+      label: "Decision Area"
+      description: "Which architectural area does this decision affect?"
+      options:
+        - System Architecture
+        - Face Recognition
+        - Hardware Integration
+        - Data Storage
+        - Security & Privacy
+        - Performance & Scalability
+        - User Interface
+        - API Design
+        - Deployment & Operations
+        - Testing Strategy
+        - Development Process
+        - Technology Stack
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context"
+      description: "What is the situation that led to this decision? What forces are at play?"
+      placeholder: |
+        ## Background
+        Describe the situation and why a decision is needed...
+
+        ## Current State
+        What is the current approach (if any)?
+
+        ## Constraints
+        What constraints or requirements must be considered?
+      value: |
+        ## Background
+
+
+        ## Current State
+
+
+        ## Constraints
+
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: "Decision"
+      description: "What architectural decision are you proposing or documenting?"
+      placeholder: |
+        ## Decision Statement
+        We will [decision]...
+
+        ## Rationale
+        Because [reasoning]...
+      value: |
+        ## Decision Statement
+
+
+        ## Rationale
+
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives Considered"
+      description: "What other options were considered and why were they rejected?"
+      placeholder: |
+        ## Alternative 1: [Name]
+        - Description: ...
+        - Pros: ...
+        - Cons: ...
+        - Why rejected: ...
+
+        ## Alternative 2: [Name]
+        - Description: ...
+        - Pros: ...
+        - Cons: ...
+        - Why rejected: ...
+      value: |
+        ## Alternative 1: 
+        - Description: 
+        - Pros: 
+        - Cons: 
+        - Why rejected: 
+
+        ## Alternative 2: 
+        - Description: 
+        - Pros: 
+        - Cons: 
+        - Why rejected: 
+
+  - type: textarea
+    id: consequences
+    attributes:
+      label: "Consequences"
+      description: "What are the positive and negative consequences of this decision?"
+      placeholder: |
+        ## Positive Consequences
+        - Benefit 1...
+        - Benefit 2...
+
+        ## Negative Consequences
+        - Risk 1...
+        - Risk 2...
+
+        ## Trade-offs
+        - Trade-off 1...
+        - Trade-off 2...
+      value: |
+        ## Positive Consequences
+
+
+        ## Negative Consequences
+
+
+        ## Trade-offs
+
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact-areas
+    attributes:
+      label: "Impact Areas"
+      description: "Which areas of the system will be impacted by this decision?"
+      options:
+        - label: "🎯 Core Functionality"
+        - label: "⚡ Performance"
+        - label: "🔒 Security"
+        - label: "🔐 Privacy"
+        - label: "🧪 Testability"
+        - label: "🔧 Maintainability"
+        - label: "📈 Scalability"
+        - label: "🔄 Reliability"
+        - label: "💰 Cost/Resource Usage"
+        - label: "👥 Developer Experience"
+        - label: "🎨 User Experience"
+        - label: "📱 Platform Compatibility"
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: "Implementation Plan"
+      description: "How will this decision be implemented?"
+      placeholder: |
+        ## Implementation Steps
+        1. Step 1...
+        2. Step 2...
+        3. Step 3...
+
+        ## Timeline
+        - Phase 1: ...
+        - Phase 2: ...
+
+        ## Dependencies
+        - Dependency 1...
+        - Dependency 2...
+
+        ## Risks
+        - Risk 1 and mitigation...
+        - Risk 2 and mitigation...
+
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: "Success Criteria"
+      description: "How will we know if this decision was successful?"
+      placeholder: |
+        ## Measurable Outcomes
+        - Metric 1: ...
+        - Metric 2: ...
+
+        ## Quality Gates
+        - Gate 1: ...
+        - Gate 2: ...
+
+        ## Acceptance Criteria
+        - Criteria 1: ...
+        - Criteria 2: ...
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: "Technical Details"
+      description: "Provide technical specifications, diagrams, or code examples"
+      placeholder: |
+        ## Technical Specifications
+        - Spec 1...
+        - Spec 2...
+
+        ## Architecture Diagrams
+        [Include ASCII diagrams or links to images]
+
+        ## Code Examples
+        ```python
+        # Example implementation
+        ```
+
+        ## Configuration Changes
+        - Config 1...
+        - Config 2...
+
+  - type: textarea
+    id: monitoring
+    attributes:
+      label: "Monitoring & Validation"
+      description: "How will the decision be monitored and validated over time?"
+      placeholder: |
+        ## Metrics to Monitor
+        - Performance metrics...
+        - Error rates...
+        - Resource usage...
+
+        ## Validation Methods
+        - Testing approach...
+        - Review checkpoints...
+
+        ## Review Schedule
+        - Review 1: [timeline]
+        - Review 2: [timeline]
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: "Backward Compatibility"
+      description: "Does this decision affect backward compatibility?"
+      options:
+        - Fully backward compatible
+        - Minor breaking changes
+        - Major breaking changes
+        - Complete rewrite required
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: migration-strategy
+    attributes:
+      label: "Migration Strategy"
+      description: "If this involves changes to existing systems, how will migration be handled?"
+      placeholder: |
+        ## Migration Plan
+        - Step 1...
+        - Step 2...
+
+        ## Data Migration
+        - Data changes needed...
+        - Migration scripts required...
+
+        ## Rollback Plan
+        - How to rollback if needed...
+
+        ## User Communication
+        - How users will be informed...
+
+  - type: textarea
+    id: related-decisions
+    attributes:
+      label: "Related Decisions"
+      description: "Are there related ADRs or decisions that should be referenced?"
+      placeholder: |
+        ## Related ADRs
+        - ADR-XXX: [Title] - [Relationship]
+        - ADR-YYY: [Title] - [Relationship]
+
+        ## External Dependencies
+        - Decision 1...
+        - Decision 2...
+
+  - type: textarea
+    id: references
+    attributes:
+      label: "References"
+      description: "Include relevant documentation, research, or external resources"
+      placeholder: |
+        ## Documentation
+        - Internal doc 1...
+        - Internal doc 2...
+
+        ## Research & Articles
+        - Article 1...
+        - Research paper...
+
+        ## Standards & Best Practices
+        - Standard 1...
+        - Best practice guide...
+
+  - type: checkboxes
+    id: review-process
+    attributes:
+      label: "Review Process"
+      description: "What review process should this ADR follow?"
+      options:
+        - label: "👥 Architecture team review required"
+        - label: "🔒 Security team review required"
+        - label: "⚡ Performance team review required"
+        - label: "🧪 Testing team review required"
+        - label: "📋 Stakeholder approval required"
+        - label: "🎯 Product owner approval required"
+
+  - type: checkboxes
+    id: adr-checklist
+    attributes:
+      label: "ADR Checklist"
+      description: "Please verify before submitting"
+      options:
+        - label: "I have searched existing ADRs to avoid duplication"
+        - label: "I have considered multiple alternatives"
+        - label: "I have analyzed the trade-offs and consequences"
+        - label: "I have considered the impact on existing systems"
+        - label: "I have thought about testing and validation"
+        - label: "I understand this decision may affect multiple stakeholders"

@@ -1,0 +1,106 @@
+# .gitattributes for Doorbell Security System
+# This file ensures consistent line endings and file handling across platforms
+# See: https://git-scm.com/docs/gitattributes
+
+# Automatically normalize line endings for all text files
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+
+# Declare files that will always have CRLF line endings on checkout
+*.bat text eol=crlf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+*.pkl binary
+*.pickle binary
+
+# Exclude files from exporting (when creating archives)
+.gitattributes export-ignore
+.gitignore export-ignore
+.github/ export-ignore
+tests/ export-ignore
+docs/ export-ignore
+*.md export-ignore
+.pre-commit-config.yaml export-ignore
+.editorconfig export-ignore
+
+# Git LFS (Large File Storage) - for future use with model files
+*.model filter=lfs diff=lfs merge=lfs -text
+*.weights filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.pb filter=lfs diff=lfs merge=lfs -text
+
+# Language-specific attributes
+*.py diff=python
+*.md diff=markdown
+
+# Security - prevent secrets from being accidentally committed
+**/credentials_telegram.py filter=git-crypt diff=git-crypt merge=git-crypt -text
+**/*secret* filter=git-crypt diff=git-crypt merge=git-crypt -text
+**/*key* filter=git-crypt diff=git-crypt merge=git-crypt -text
+.env filter=git-crypt diff=git-crypt merge=git-crypt -text
+
+# Generated files - mark as generated to help with diffs
+data/logs/* linguist-generated=true
+data/captures/* linguist-generated=true
+htmlcov/* linguist-generated=true
+*.coverage linguist-generated=true
+coverage.xml linguist-generated=true
+**/__pycache__/ linguist-generated=true
+*.pyc linguist-generated=true
+*.pyo linguist-generated=true
+*.pyd linguist-generated=true
+.pytest_cache/ linguist-generated=true
+.mypy_cache/ linguist-generated=true
+.ruff_cache/ linguist-generated=true
+
+# Documentation files
+*.md linguist-documentation=true
+docs/* linguist-documentation=true
+
+# Vendored dependencies (if any)
+vendor/* linguist-vendored=true
+third_party/* linguist-vendored=true
+
+# Configuration for GitHub language detection
+*.py linguist-language=Python
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.toml linguist-language=TOML
+*.json linguist-language=JSON
+*.sh linguist-language=Shell
+*.bash linguist-language=Shell
+Dockerfile linguist-language=Dockerfile
+Makefile linguist-language=Makefile
+
+# Merge strategies for specific files
+CHANGELOG.md merge=union
+requirements*.txt merge=union

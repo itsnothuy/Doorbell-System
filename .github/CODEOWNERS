@@ -1,0 +1,72 @@
+# CODEOWNERS for Doorbell Security System
+# This file defines code ownership for automatic review assignment
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - all files require review from core maintainer
+* @itsnothuy
+
+# Core System Components
+/src/doorbell_security.py @itsnothuy
+/src/platform_detector.py @itsnothuy
+
+# Face Recognition & AI Components
+/src/face_manager.py @itsnothuy
+# Future: when adding AI team members
+# /src/face_manager.py @itsnothuy @ai-team
+
+# Hardware Interface Components
+/src/gpio_handler.py @itsnothuy
+/src/camera_handler.py @itsnothuy
+# Future: when adding hardware specialists
+# /src/gpio_handler.py @itsnothuy @hardware-team
+# /src/camera_handler.py @itsnothuy @hardware-team
+
+# Communication & Notifications
+/src/telegram_notifier.py @itsnothuy
+
+# Web Interface & API
+/src/web_interface.py @itsnothuy
+/templates/ @itsnothuy
+/static/ @itsnothuy
+# Future: when adding frontend team
+# /src/web_interface.py @itsnothuy @frontend-team
+# /templates/ @itsnothuy @frontend-team
+
+# Configuration Management
+/config/ @itsnothuy
+/config/settings.py @itsnothuy
+/config/credentials_template.py @itsnothuy
+/config/logging_config.py @itsnothuy
+
+# Infrastructure & Deployment
+/.github/ @itsnothuy
+/Dockerfile @itsnothuy
+/docker-compose.yml @itsnothuy
+/railway.toml @itsnothuy
+/render.yaml @itsnothuy
+/vercel.json @itsnothuy
+/requirements*.txt @itsnothuy
+/setup*.sh @itsnothuy
+/Makefile @itsnothuy
+
+# Documentation
+/docs/ @itsnothuy
+/README.md @itsnothuy
+/*.md @itsnothuy
+
+# Testing
+/tests/ @itsnothuy
+
+# Data directories (for structure, not content)
+/data/.gitkeep @itsnothuy
+
+# Scripts
+/scripts/ @itsnothuy
+
+# Root configuration files
+/.editorconfig @itsnothuy
+/.gitignore @itsnothuy
+/.gitattributes @itsnothuy
+/.pre-commit-config.yaml @itsnothuy
+/pyproject.toml @itsnothuy
+/app.py @itsnothuy

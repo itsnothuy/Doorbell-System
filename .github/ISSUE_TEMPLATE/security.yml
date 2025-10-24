@@ -1,0 +1,244 @@
+name: "🔒 Security Vulnerability"
+description: "Report a security vulnerability (use email for sensitive issues)"
+title: "[SECURITY] "
+labels: ["security", "critical", "needs-triage"]
+projects: ["Doorbell Security System"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ IMPORTANT SECURITY NOTICE
+        
+        **For sensitive security vulnerabilities, please DO NOT use this public issue template.**
+        
+        Instead, please email us directly at: **[security@example.com]**
+        
+        Use this template only for:
+        - General security improvements
+        - Security feature requests
+        - Non-sensitive security discussions
+        - Security documentation issues
+
+  - type: checkboxes
+    id: severity-confirmation
+    attributes:
+      label: "Security Issue Type"
+      description: "Please confirm the type of security issue"
+      options:
+        - label: "🔍 General security improvement suggestion"
+        - label: "📚 Security documentation issue"
+        - label: "🛡️ Security feature request"
+        - label: "⚠️ Low-risk security concern (no immediate exploitation risk)"
+        - label: "🚨 This is a sensitive vulnerability (I should email instead)"
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Security Component"
+      description: "Which component does this security issue affect?"
+      options:
+        - Authentication/Authorization
+        - Input Validation
+        - Data Protection/Privacy
+        - Face Data Security
+        - Web Interface Security
+        - API Security
+        - Configuration Security
+        - File System Security
+        - Network Security
+        - Dependency Security
+        - Docker/Container Security
+        - General Security Practices
+        - Documentation Security
+    validations:
+      required: true
+
+  - type: textarea
+    id: security-description
+    attributes:
+      label: "Security Issue Description"
+      description: "Describe the security concern (avoid sensitive details in public issues)"
+      placeholder: |
+        ## General Description
+        Describe the security issue in general terms...
+
+        ## Security Impact
+        What are the potential security implications?
+
+        ## Affected Areas
+        Which parts of the system are affected?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: security-category
+    attributes:
+      label: "Security Category"
+      description: "What type of security issue is this?"
+      options:
+        - Input Validation Weakness
+        - Authentication Bypass
+        - Authorization Issues
+        - Data Exposure
+        - Information Disclosure
+        - Cross-Site Scripting (XSS)
+        - Cross-Site Request Forgery (CSRF)
+        - Path Traversal
+        - Injection Vulnerabilities
+        - Cryptographic Issues
+        - Configuration Security
+        - Dependency Vulnerabilities
+        - Privacy Concerns
+        - Other Security Issue
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security-impact
+    attributes:
+      label: "Potential Security Impact"
+      description: "What could be the impact of this security issue?"
+      options:
+        - label: "📊 Information disclosure"
+        - label: "🔐 Authentication bypass"
+        - label: "👤 Unauthorized access"
+        - label: "🗃️ Data manipulation"
+        - label: "💾 Data deletion/corruption"
+        - label: "🎭 Identity spoofing"
+        - label: "🔒 Privacy violation"
+        - label: "⚡ Denial of service"
+        - label: "💻 Remote code execution"
+        - label: "🔑 Privilege escalation"
+
+  - type: textarea
+    id: security-environment
+    attributes:
+      label: "Environment Information"
+      description: "Provide relevant environment details"
+      placeholder: |
+        - Platform: (e.g., Raspberry Pi, Docker, macOS)
+        - Version: (e.g., commit hash or release)
+        - Configuration: (relevant security settings)
+        - Network setup: (relevant network configuration)
+      value: |
+        - Platform: 
+        - Version: 
+        - Configuration: 
+        - Network setup: 
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: "General Reproduction Steps"
+      description: "Provide general steps to understand the issue (avoid exploits in public)"
+      placeholder: |
+        1. General scenario setup...
+        2. Configuration used...
+        3. General observation...
+        
+        Note: Detailed exploitation steps should be sent via email
+
+  - type: textarea
+    id: security-recommendations
+    attributes:
+      label: "Security Recommendations"
+      description: "Do you have suggestions for fixing this security issue?"
+      placeholder: |
+        ## Recommended Solutions
+        - Suggestion 1...
+        - Suggestion 2...
+        
+        ## Security Best Practices
+        - Practice 1...
+        - Practice 2...
+
+  - type: checkboxes
+    id: affected-versions
+    attributes:
+      label: "Affected Versions"
+      description: "Which versions are affected?"
+      options:
+        - label: "Current main branch"
+        - label: "Latest release"
+        - label: "Previous releases"
+        - label: "Development branches"
+        - label: "All versions"
+        - label: "Unknown version scope"
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: "Temporary Mitigation"
+      description: "Are there any temporary workarounds or mitigations?"
+      placeholder: |
+        ## Immediate Mitigations
+        - Mitigation 1...
+        - Mitigation 2...
+        
+        ## Configuration Changes
+        - Change 1...
+        - Change 2...
+
+  - type: checkboxes
+    id: privacy-implications
+    attributes:
+      label: "Privacy Implications"
+      description: "Does this security issue have privacy implications?"
+      options:
+        - label: "🔒 Face data could be exposed"
+        - label: "📷 Camera images could be accessed"
+        - label: "📊 Personal information could be disclosed"
+        - label: "🏠 Home security could be compromised"
+        - label: "📱 Telegram data could be intercepted"
+        - label: "💾 Local data could be accessed remotely"
+        - label: "📋 System logs contain sensitive information"
+
+  - type: textarea
+    id: security-references
+    attributes:
+      label: "Security References"
+      description: "Any relevant security standards, CVEs, or references?"
+      placeholder: |
+        ## Standards/Frameworks
+        - OWASP reference...
+        - CWE reference...
+        
+        ## Similar Issues
+        - CVE reference...
+        - Security advisory...
+
+  - type: checkboxes
+    id: disclosure-timeline
+    attributes:
+      label: "Disclosure Preferences"
+      description: "What are your preferences for disclosure?"
+      options:
+        - label: "🔓 This can be discussed publicly (low-risk issue)"
+        - label: "📧 I will follow up via email with sensitive details"
+        - label: "⏰ I prefer coordinated disclosure with timeline"
+        - label: "🤝 I'm available to help with fix validation"
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: "Additional Security Context"
+      description: "Any additional context about this security issue?"
+      placeholder: |
+        ## Additional Information
+        - Security testing performed...
+        - Tools used for discovery...
+        - Related security concerns...
+        - Impact assessment details...
+
+  - type: checkboxes
+    id: security-checklist
+    attributes:
+      label: "Security Checklist"
+      description: "Please confirm before submitting"
+      options:
+        - label: "I understand this is a public issue and will not include sensitive exploitation details"
+        - label: "I will email security@example.com for sensitive vulnerability details"
+        - label: "I have searched existing issues to ensure this hasn't been reported"
+        - label: "I understand the privacy-first nature of this system"
+        - label: "I am committed to responsible disclosure practices"

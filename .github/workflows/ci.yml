@@ -1,0 +1,551 @@
+name: "Comprehensive CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  pull_request:
+    branches: [ master, main ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  schedule:
+    # Run tests daily at 2 AM UTC to catch dependency issues
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  checks: write
+
+env:
+  PYTHON_VERSION_MATRIX: '["3.10", "3.11", "3.12"]'
+  MAIN_PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 1: Code Quality & Security Checks
+  quality-checks:
+    name: "Code Quality & Security"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better security scanning
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-web.txt
+          pip install ruff black mypy bandit safety pre-commit
+          pip install types-requests types-Pillow types-PyYAML
+      
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit install
+          pre-commit run --all-files --show-diff-on-failure
+      
+      - name: Security scan with Bandit
+        run: |
+          bandit -r src/ config/ app.py -f json -o bandit-report.json || true
+          bandit -r src/ config/ app.py -f txt
+      
+      - name: Dependency vulnerability scan
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check
+      
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+      
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Job 2: Cross-Platform Testing Matrix
+  test-matrix:
+    name: "Tests on Python ${{ matrix.python-version }} (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+        exclude:
+          # Reduce matrix size - skip some combinations for efficiency
+          - os: macos-latest
+            python-version: "3.10"
+          - os: windows-latest
+            python-version: "3.10"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
+      
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1
+      
+      - name: Install system dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install cmake
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install -r requirements-web.txt
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist
+          pip install coverage[toml]
+      
+      - name: Create test data directories
+        run: |
+          mkdir -p data/known_faces data/blacklist_faces data/captures data/logs data/cropped_faces/known data/cropped_faces/unknown
+      
+      - name: Run unit tests
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m pytest tests/ -v \
+            --cov=src --cov=config --cov=app \
+            --cov-report=xml --cov-report=term \
+            --junit-xml=pytest-results.xml \
+            --maxfail=5 \
+            -x
+      
+      - name: Test import functionality
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -c "
+          import sys, os
+          sys.path.insert(0, os.getcwd())
+          
+          # Test core imports
+          from src.doorbell_security import DoorbellSecuritySystem
+          from src.face_manager import FaceManager
+          from src.camera_handler import CameraHandler
+          from src.gpio_handler import GPIOHandler
+          from src.telegram_notifier import TelegramNotifier
+          from src.platform_detector import platform_detector
+          from config.settings import Settings
+          
+          print('✅ All core imports successful')
+          
+          # Test platform detection
+          print(f'Platform: {platform_detector.system}')
+          print(f'Camera config: {platform_detector.get_camera_config()}')
+          print(f'GPIO config: {platform_detector.get_gpio_config()}')
+          "
+      
+      - name: Test Docker build (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == env.MAIN_PYTHON_VERSION
+        run: |
+          docker build -t doorbell-security-test .
+          docker run --rm doorbell-security-test python -c "
+          import sys
+          from src.doorbell_security import DoorbellSecuritySystem
+          print('✅ Docker build and import test successful')
+          "
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            pytest-results.xml
+            coverage.xml
+      
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == env.MAIN_PYTHON_VERSION
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # Job 3: Integration & End-to-End Tests
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    timeout-minutes: 20
+    
+    services:
+      # Mock external services for integration testing
+      mock-telegram:
+        image: mockserver/mockserver:5.15.0
+        ports:
+          - 1080:1080
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-web.txt
+          pip install pytest pytest-mock requests-mock
+      
+      - name: Setup test environment
+        run: |
+          mkdir -p data/{known_faces,blacklist_faces,captures,logs,cropped_faces/{known,unknown}}
+          
+          # Create test face images
+          python -c "
+          from PIL import Image
+          import numpy as np
+          
+          # Create test face images
+          for name in ['john_doe', 'jane_doe']:
+              img = Image.fromarray(np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8))
+              img.save(f'data/known_faces/{name}.jpg')
+          
+          # Create blacklist test image  
+          img = Image.fromarray(np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8))
+          img.save('data/blacklist_faces/suspicious_person.jpg')
+          
+          print('✅ Test data created')
+          "
+      
+      - name: Run integration tests
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+          MOCK_TELEGRAM_URL: "http://localhost:1080"
+        run: |
+          python -m pytest tests/integration/ -v --tb=short
+      
+      - name: Test system startup and shutdown
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        timeout-minutes: 3
+        run: |
+          python -c "
+          import sys, time, threading
+          from src.doorbell_security import DoorbellSecuritySystem
+          
+          print('Testing system initialization...')
+          system = DoorbellSecuritySystem()
+          
+          print('Testing system startup in thread...')
+          def run_system():
+              try:
+                  system.start()
+              except KeyboardInterrupt:
+                  pass
+          
+          thread = threading.Thread(target=run_system, daemon=True)
+          thread.start()
+          
+          # Let system run for 10 seconds
+          time.sleep(10)
+          
+          print('Testing system shutdown...')
+          system.stop()
+          
+          print('✅ System startup/shutdown test successful')
+          "
+
+  # Job 4: Performance & Load Testing
+  performance-tests:
+    name: "Performance Tests"
+    runs-on: ubuntu-latest
+    needs: [test-matrix]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-web.txt
+          pip install pytest pytest-benchmark memory-profiler
+      
+      - name: Run performance benchmarks
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m pytest tests/performance/ -v \
+            --benchmark-only \
+            --benchmark-json=benchmark-results.json
+      
+      - name: Memory usage profiling
+        env:
+          DEVELOPMENT_MODE: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -c "
+          import tracemalloc
+          from src.doorbell_security import DoorbellSecuritySystem
+          
+          tracemalloc.start()
+          
+          print('Testing memory usage...')
+          system = DoorbellSecuritySystem()
+          
+          current, peak = tracemalloc.get_traced_memory()
+          print(f'Current memory usage: {current / 1024 / 1024:.1f} MB')
+          print(f'Peak memory usage: {peak / 1024 / 1024:.1f} MB')
+          
+          tracemalloc.stop()
+          
+          # Assert reasonable memory usage (< 500MB for basic initialization)
+          assert peak < 500 * 1024 * 1024, f'Memory usage too high: {peak / 1024 / 1024:.1f} MB'
+          print('✅ Memory usage within acceptable limits')
+          "
+      
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: benchmark-results.json
+
+  # Job 5: Documentation & Release Preparation
+  docs-and-release:
+    name: "Documentation & Release Checks"
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check documentation completeness
+        run: |
+          echo "Checking required documentation files..."
+          
+          required_files=(
+            "README.md"
+            "docs/ARCHITECTURE.md"
+            "docs/CONTRIBUTING.md"
+            "docs/SECURITY.md"
+            "docs/TESTING.md"
+            ".github/CODEOWNERS"
+            ".github/PULL_REQUEST_TEMPLATE.md"
+          )
+          
+          missing_files=()
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              missing_files+=("$file")
+            fi
+          done
+          
+          if [[ ${#missing_files[@]} -gt 0 ]]; then
+            echo "❌ Missing required documentation files:"
+            printf '%s\n' "${missing_files[@]}"
+            exit 1
+          else
+            echo "✅ All required documentation files present"
+          fi
+      
+      - name: Validate configuration files
+        run: |
+          echo "Validating configuration files..."
+          
+          # Check YAML files
+          python -c "
+          import yaml
+          import sys
+          
+          yaml_files = [
+              'docker-compose.yml',
+              '.github/workflows/ci.yml',
+              'railway.toml',
+              'render.yaml'
+          ]
+          
+          for file in yaml_files:
+              try:
+                  with open(file, 'r') as f:
+                      yaml.safe_load(f)
+                  print(f'✅ {file} is valid YAML')
+              except FileNotFoundError:
+                  print(f'⚠️ {file} not found (optional)')
+              except yaml.YAMLError as e:
+                  print(f'❌ {file} has invalid YAML: {e}')
+                  sys.exit(1)
+          "
+      
+      - name: Check for TODO/FIXME items
+        run: |
+          echo "Checking for TODO/FIXME items..."
+          
+          todo_count=$(grep -r -n "TODO\|FIXME\|XXX\|HACK" src/ config/ app.py || true | wc -l)
+          
+          if [[ $todo_count -gt 20 ]]; then
+            echo "⚠️ High number of TODO/FIXME items: $todo_count"
+            echo "Consider addressing some before release"
+          else
+            echo "✅ TODO/FIXME count acceptable: $todo_count"
+          fi
+
+  # Job 6: Deployment Readiness Check
+  deployment-check:
+    name: "Deployment Readiness"
+    runs-on: ubuntu-latest
+    needs: [test-matrix, integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Test Docker multi-stage build
+        run: |
+          echo "Testing Docker build for production..."
+          docker build -t doorbell-security:test .
+          
+          echo "Testing container startup..."
+          container_id=$(docker run -d -p 5000:5000 \
+            -e DEVELOPMENT_MODE=true \
+            doorbell-security:test)
+          
+          echo "Waiting for container to start..."
+          sleep 10
+          
+          echo "Testing health endpoint..."
+          if curl -f http://localhost:5000/api/status; then
+            echo "✅ Container health check passed"
+          else
+            echo "❌ Container health check failed"
+            docker logs $container_id
+            exit 1
+          fi
+          
+          echo "Cleaning up..."
+          docker stop $container_id
+          docker rm $container_id
+      
+      - name: Test deployment configurations
+        run: |
+          echo "Validating deployment configurations..."
+          
+          # Check if all required environment variables are documented
+          echo "Checking environment variable documentation..."
+          
+          if grep -q "Environment Variables" README.md; then
+            echo "✅ Environment variables documented in README"
+          else
+            echo "⚠️ Consider documenting environment variables in README"
+          fi
+      
+      - name: Security scan of Docker image
+        run: |
+          echo "Scanning Docker image for vulnerabilities..."
+          
+          # Install Trivy
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+          
+          # Scan the Docker image
+          trivy image --exit-code 0 --severity HIGH,CRITICAL doorbell-security:test
+
+  # Job 7: Notification and Reporting
+  notify-results:
+    name: "Report Results"
+    runs-on: ubuntu-latest
+    needs: [quality-checks, test-matrix, integration-tests, performance-tests, docs-and-release, deployment-check]
+    if: always()
+    
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          # Check if any required jobs failed
+          if [[ "${{ needs.quality-checks.result }}" == "failure" || 
+                "${{ needs.test-matrix.result }}" == "failure" || 
+                "${{ needs.integration-tests.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Critical tests failed" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.performance-tests.result }}" == "failure" || 
+                  "${{ needs.deployment-check.result }}" == "failure" ]]; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "message=Some non-critical tests failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=All tests passed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create job summary
+        run: |
+          echo "## 🏗️ Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Checks | ${{ needs.quality-checks.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Matrix | ${{ needs.test-matrix.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documentation | ${{ needs.docs-and-release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment Check | ${{ needs.deployment-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status:** ${{ steps.status.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Message:** ${{ steps.status.outputs.message }}" >> $GITHUB_STEP_SUMMARY

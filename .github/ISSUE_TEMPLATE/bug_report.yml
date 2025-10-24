@@ -1,0 +1,243 @@
+name: "🐛 Bug Report"
+description: "Report a bug in the doorbell security system"
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+projects: ["Doorbell Security System"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please provide detailed information to help us reproduce and fix the issue.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Affected Component"
+      description: "Which component is experiencing the bug?"
+      options:
+        - Face Recognition (face_manager.py)
+        - Camera System (camera_handler.py)
+        - GPIO/Hardware (gpio_handler.py)
+        - Web Interface (web_interface.py)
+        - Telegram Integration (telegram_notifier.py)
+        - Main System (doorbell_security.py)
+        - Configuration System
+        - Docker/Deployment
+        - CI/CD Pipeline
+        - Documentation
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Bug Severity"
+      description: "How severe is this bug?"
+      options:
+        - Critical - System completely broken/security issue
+        - High - Major feature broken, significant impact
+        - Medium - Feature partially broken, workaround exists
+        - Low - Minor issue, cosmetic problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: "Bug Description"
+      description: "Provide a clear and concise description of the bug"
+      placeholder: "Describe the bug..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: "Steps to Reproduce"
+      description: "Provide detailed steps to reproduce the bug"
+      placeholder: |
+        1. Start the system with...
+        2. Navigate to...
+        3. Click on...
+        4. See error...
+      value: |
+        1. 
+        2. 
+        3. 
+        4. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: "Expected Behavior"
+      description: "What should happen instead?"
+      placeholder: "Describe what you expected to happen..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: "Actual Behavior"
+      description: "What actually happened?"
+      placeholder: "Describe what actually happened..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: "Platform"
+      description: "What platform are you running on?"
+      options:
+        - Raspberry Pi OS
+        - Ubuntu Linux
+        - Debian Linux
+        - macOS
+        - Docker (Linux host)
+        - Docker (macOS host)
+        - Docker (Windows host)
+        - Other (specify in additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment Details"
+      description: "Please provide environment information"
+      placeholder: |
+        - OS Version: (e.g., Raspberry Pi OS Bullseye, Ubuntu 22.04, macOS Ventura)
+        - Python Version: (e.g., 3.11.0)
+        - Hardware: (e.g., Raspberry Pi 4, x86_64)
+        - Camera: (e.g., Pi Camera v2, USB webcam)
+        - System Version: (e.g., commit hash or release version)
+      value: |
+        - OS Version: 
+        - Python Version: 
+        - Hardware: 
+        - Camera: 
+        - System Version: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Relevant Logs"
+      description: "Please include relevant log output"
+      placeholder: |
+        Paste relevant logs here. Include:
+        - Application logs from data/logs/
+        - Error messages
+        - Stack traces
+        - Console output
+      render: shell
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: "Configuration"
+      description: "Please share relevant configuration (remove sensitive data)"
+      placeholder: |
+        Include relevant parts of your configuration:
+        - config/settings.py values
+        - Environment variables
+        - Docker configuration
+        - Any custom settings
+      render: yaml
+
+  - type: checkboxes
+    id: error-frequency
+    attributes:
+      label: "Error Frequency"
+      description: "How often does this bug occur?"
+      options:
+        - label: "Always - Every time I try this"
+        - label: "Often - Most of the time"
+        - label: "Sometimes - Intermittent issue"
+        - label: "Rarely - Only happened once or twice"
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: "Workaround"
+      description: "Have you found any workaround for this issue?"
+      placeholder: "Describe any workaround you've found..."
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: "Additional Context"
+      description: "Add any other context about the problem"
+      placeholder: |
+        ## Additional Information
+        - Screenshots or videos
+        - Network configuration
+        - Hardware setup details
+        - Recent changes made to the system
+        - Related issues or discussions
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: "Impact Assessment"
+      description: "What is the impact of this bug?"
+      options:
+        - label: "🚨 Security implications"
+        - label: "🛑 System completely unusable"
+        - label: "⚠️ Core functionality broken"
+        - label: "🔧 Feature partially working"
+        - label: "🎨 UI/UX issue only"
+        - label: "📊 Performance degradation"
+        - label: "💾 Data loss or corruption"
+
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: "Regression Information"
+      description: "Is this a regression from a previous version?"
+      options:
+        - label: "✅ This worked in a previous version"
+        - label: "❓ I'm not sure if this ever worked"
+        - label: "🆕 This is a new feature that never worked"
+
+  - type: textarea
+    id: regression-details
+    attributes:
+      label: "Regression Details"
+      description: "If this is a regression, when did it last work?"
+      placeholder: |
+        - Last working version:
+        - When did you first notice the issue:
+        - Recent changes that might be related:
+
+  - type: checkboxes
+    id: debugging-attempts
+    attributes:
+      label: "Debugging Attempts"
+      description: "What have you tried to debug this issue?"
+      options:
+        - label: "🔍 Checked logs for error messages"
+        - label: "🔄 Restarted the service/system"
+        - label: "🧹 Cleared caches/temporary files"
+        - label: "📦 Reinstalled dependencies"
+        - label: "⚙️ Reset configuration to defaults"
+        - label: "🐳 Rebuilt Docker containers"
+        - label: "🧪 Tested with minimal configuration"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      description: "Please verify before submitting"
+      options:
+        - label: "I have searched existing issues to ensure this bug hasn't been reported"
+        - label: "I have provided detailed steps to reproduce the issue"
+        - label: "I have included relevant logs and error messages"
+        - label: "I have provided environment and configuration details"
+        - label: "I have removed any sensitive information from the report"

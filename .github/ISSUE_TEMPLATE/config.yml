@@ -1,0 +1,21 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 General Discussion
+    url: https://github.com/itsnothuy/doorbell-system/discussions
+    about: General questions, ideas, and community discussions
+  
+  - name: 📚 Documentation
+    url: https://github.com/itsnothuy/doorbell-system/tree/main/docs
+    about: Check our comprehensive documentation before creating an issue
+  
+  - name: 🔒 Security Vulnerabilities
+    url: mailto:security@example.com
+    about: Report security vulnerabilities privately via email (do not create public issues)
+  
+  - name: 🚀 Feature Roadmap
+    url: https://github.com/itsnothuy/doorbell-system/projects
+    about: Check our project roadmap and planned features
+  
+  - name: 📋 Contributing Guide
+    url: https://github.com/itsnothuy/doorbell-system/blob/main/docs/CONTRIBUTING.md
+    about: Learn how to contribute to the project

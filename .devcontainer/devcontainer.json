@@ -1,0 +1,280 @@
+{
+  "name": "Doorbell Security System Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "azureDnsAutoDetection": true,
+      "installDockerBuildx": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "18",
+      "nvmVersion": "latest"
+    }
+  },
+
+  "containerEnv": {
+    "DEVELOPMENT_MODE": "true",
+    "PYTHONPATH": "/workspaces/doorbell-system",
+    "PYTHONUNBUFFERED": "1",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "PIP_NO_CACHE_DIR": "1"
+  },
+
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  },
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind",
+    "source=${localWorkspaceFolder}/data,target=/workspaces/doorbell-system/data,type=bind"
+  ],
+
+  "runArgs": [
+    "--privileged",
+    "--device=/dev/video0:/dev/video0",
+    "--group-add=video"
+  ],
+
+  "onCreateCommand": [
+    "sudo apt-get update",
+    "sudo apt-get install -y build-essential cmake libopencv-dev libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 libfontconfig1-dev libfreetype6-dev",
+    "sudo apt-get install -y curl wget git htop tree jq unzip",
+    "sudo apt-get install -y v4l-utils",
+    "sudo ln -sf /var/run/docker-host.sock /var/run/docker.sock"
+  ],
+
+  "postCreateCommand": [
+    "bash .devcontainer/setup.sh"
+  ],
+
+  "postStartCommand": [
+    "echo 'Container started! Run: python app.py' >> /tmp/startup.log"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylint",
+        "ms-python.flake8",
+        "ms-python.black-formatter",
+        "ms-python.mypy-type-checker",
+        "ms-python.isort",
+        "charliermarsh.ruff",
+        "github.copilot",
+        "github.copilot-chat",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "ms-vscode.makefile-tools",
+        "ms-azuretools.vscode-docker",
+        "streetsidesoftware.code-spell-checker",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.live-server",
+        "bierner.markdown-mermaid",
+        "yzhang.markdown-all-in-one",
+        "davidanson.vscode-markdownlint",
+        "ms-python.debugpy",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "ms-vscode.test-adapter-converter",
+        "ms-python.pytest",
+        "ryanluker.vscode-coverage-gutters",
+        "formulahendry.code-runner",
+        "eamodio.gitlens",
+        "oderwat.indent-rainbow",
+        "pkief.material-icon-theme",
+        "zhuangtongfa.material-theme",
+        "ms-vscode-remote.remote-containers"
+      ],
+
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.pythonPath": "/usr/local/bin/python",
+        
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": false,
+        "python.linting.mypyEnabled": true,
+        "python.linting.banditEnabled": true,
+        
+        "python.formatting.provider": "none",
+        "python.formatting.blackArgs": ["--line-length=100"],
+        
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+          },
+          "editor.rulers": [100]
+        },
+
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": [
+          "tests",
+          "-v",
+          "--tb=short"
+        ],
+
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/.pytest_cache": true,
+          "**/.mypy_cache": true,
+          "**/.ruff_cache": true,
+          "**/htmlcov": true,
+          "**/.coverage": true,
+          "**/coverage.xml": true,
+          "**/node_modules": true,
+          "**/.git": false
+        },
+
+        "files.watcherExclude": {
+          "**/__pycache__/**": true,
+          "**/node_modules/**": true,
+          "**/.git/objects/**": true,
+          "**/.git/subtree-cache/**": true,
+          "**/data/captures/**": true,
+          "**/data/logs/**": true
+        },
+
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/bower_components": true,
+          "**/*.code-search": true,
+          "**/data/captures": true,
+          "**/data/logs": true,
+          "**/__pycache__": true,
+          "**/.pytest_cache": true
+        },
+
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false,
+        "editor.rulers": [100],
+        "editor.wordWrap": "wordWrapColumn",
+        "editor.wordWrapColumn": 100,
+
+        "yaml.format.enable": true,
+        "yaml.validate": true,
+        "yaml.completion": true,
+        "yaml.hover": true,
+
+        "json.format.enable": true,
+
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "git.autofetch": true,
+
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        },
+
+        "workbench.colorTheme": "Material Theme Darker High Contrast",
+        "workbench.iconTheme": "material-icon-theme",
+        "workbench.startupEditor": "readme",
+
+        "coverage-gutters.coverageFileNames": [
+          "coverage.xml",
+          "coverage.lcov",
+          "cov.xml",
+          "lcov.info"
+        ],
+
+        "ruff.args": ["--config=pyproject.toml"],
+        "ruff.format.args": ["--config=pyproject.toml"],
+
+        "mypy-type-checker.args": [
+          "--config-file=pyproject.toml"
+        ],
+
+        "isort.args": ["--settings-path=pyproject.toml"],
+
+        "github.copilot.enable": {
+          "*": true,
+          "yaml": true,
+          "plaintext": true,
+          "markdown": true,
+          "python": true
+        },
+
+        "cSpell.words": [
+          "doorbell",
+          "picamera",
+          "opencv",
+          "tensorflow",
+          "numpy",
+          "PIL",
+          "YOLO",
+          "RTSP",
+          "GPIO",
+          "EdgeTPU",
+          "frigate",
+          "embeddings",
+          "blacklist",
+          "imread",
+          "imwrite",
+          "cvtColor",
+          "resize"
+        ]
+      }
+    }
+  },
+
+  "forwardPorts": [5000, 8080, 3000],
+  "portsAttributes": {
+    "5000": {
+      "label": "Doorbell Security System",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Development Server",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "Frontend Dev Server",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "secrets": {
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Telegram bot token for notifications"
+    },
+    "TELEGRAM_CHAT_ID": {
+      "description": "Telegram chat ID for notifications"
+    }
+  }
+}

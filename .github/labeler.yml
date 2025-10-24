@@ -1,0 +1,141 @@
+# Auto-labeling configuration for Doorbell Security System
+# This file configures automatic labeling of pull requests based on changed files
+# See: https://github.com/actions/labeler
+
+# Core system components
+'component: core':
+  - 'src/doorbell_security.py'
+  - 'src/platform_detector.py'
+  - 'app.py'
+
+# Face recognition and AI
+'component: face-recognition':
+  - 'src/face_manager.py'
+  - 'data/known_faces/**/*'
+  - 'data/blacklist_faces/**/*'
+  - 'data/cropped_faces/**/*'
+
+# Hardware interface
+'component: hardware':
+  - 'src/gpio_handler.py'
+  - 'src/camera_handler.py'
+
+# Communications
+'component: notifications':
+  - 'src/telegram_notifier.py'
+
+# Web interface and UI
+'component: web-ui':
+  - 'src/web_interface.py'
+  - 'templates/**/*'
+  - 'static/**/*'
+
+# Configuration management
+'component: config':
+  - 'config/**/*'
+  - 'pyproject.toml'
+  - '.editorconfig'
+  - '.pre-commit-config.yaml'
+
+# Documentation
+'documentation':
+  - 'docs/**/*'
+  - '*.md'
+  - 'README*'
+  - 'CHANGELOG*'
+  - 'LICENSE*'
+
+# Testing
+'testing':
+  - 'tests/**/*'
+  - 'pytest.ini'
+  - 'conftest.py'
+
+# Infrastructure and deployment
+'infrastructure':
+  - '.github/**/*'
+  - 'Dockerfile*'
+  - 'docker-compose*.yml'
+  - 'requirements*.txt'
+  - 'setup*.sh'
+  - 'Makefile'
+  - 'railway.toml'
+  - 'render.yaml'
+  - 'vercel.json'
+
+# Scripts and automation
+'automation':
+  - 'scripts/**/*'
+  - '.github/workflows/**/*'
+
+# Security related changes
+'security':
+  - '.github/workflows/codeql.yml'
+  - 'config/credentials_template.py'
+  - any: ['**/security.py', '**/auth.py', '**/credentials*']
+
+# Dependencies
+'dependencies':
+  - 'requirements*.txt'
+  - 'pyproject.toml'
+  - 'Pipfile*'
+  - 'poetry.lock'
+  - 'package*.json'
+
+# Performance related
+'performance':
+  - any: ['**/performance/**', '**/*benchmark*', '**/*perf*']
+
+# Bug fixes (based on common patterns)
+'bug':
+  - any: ['**/fix_*', '**/bugfix_*', '**/hotfix_*']
+
+# Breaking changes (based on file patterns that often indicate breaking changes)
+'breaking-change':
+  - 'src/doorbell_security.py'
+  - 'config/settings.py'
+  - 'app.py'
+
+# Priority labels based on critical system components
+'priority: high':
+  - 'src/doorbell_security.py'
+  - 'src/face_manager.py'
+  - '.github/workflows/**/*'
+
+'priority: medium':
+  - 'src/gpio_handler.py'
+  - 'src/camera_handler.py'
+  - 'src/telegram_notifier.py'
+  - 'config/**/*'
+
+'priority: low':
+  - 'docs/**/*'
+  - 'templates/**/*'
+  - 'static/**/*'
+  - '*.md'
+
+# Platform specific changes
+'platform: raspberry-pi':
+  - any: ['**/*pi*', '**/*gpio*', '**/*picamera*']
+
+'platform: macos':
+  - any: ['**/*macos*', '**/*darwin*', 'setup-macos.sh']
+
+'platform: docker':
+  - 'Dockerfile*'
+  - 'docker-compose*.yml'
+  - '.dockerignore'
+
+'platform: cloud':
+  - 'railway.toml'
+  - 'render.yaml'
+  - 'vercel.json'
+
+# Size labels (estimated based on typical file change patterns)
+'size: small':
+  - any: ['docs/**/*.md', 'README.md', '*.txt']
+
+'size: large':
+  - 'src/doorbell_security.py'
+  - 'src/face_manager.py'
+  - 'src/web_interface.py'
