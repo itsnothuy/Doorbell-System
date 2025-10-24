@@ -682,3 +682,28 @@ def test_pipeline_integration():
 - Recognition accuracy meets or exceeds target
 - Performance benchmarks achieved consistently
 - Zero data loss or corruption in production
+
+---
+
+## 🤖 **For Coding Agents: Auto-Close Setup**
+
+### **Branch Naming Convention**
+When implementing this issue, create your branch using one of these patterns:
+- `issue-7/face-recognition-engine`
+- `7-face-recognition-engine` 
+- `issue-7/implement-face-recognition`
+
+### **PR Creation**
+The GitHub Action will automatically append `Closes #7` to your PR description when you follow the branch naming convention above. This ensures the issue closes automatically when your PR is merged to the default branch.
+
+### **Manual Alternative**
+If you prefer manual control, include one of these in your PR description:
+```
+Closes #7
+Fixes #7
+Resolves #7
+```
+
+---
+
+**This issue implements the face recognition engine as the core intelligence component of the Frigate-inspired pipeline architecture, providing accurate person identification with comprehensive database management and real-time performance optimization.**

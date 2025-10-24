@@ -1,0 +1,25 @@
+name: Auto-append "Closes #N" to PR body
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+permissions:
+  pull-requests: write
+jobs:
+  add-closing-keyword:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            if (/\b(closes|fixes|resolves)\s+#\d+\b/i.test(body)) return;
+            const branch = context.payload.pull_request.head.ref;
+            const m = branch.match(/(?:^|[-/])(?:issue-)?(\d+)\b/i);
+            if (!m) return;
+            const issue = m[1];
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              body: body + `\n\nCloses #${issue}`
+            });

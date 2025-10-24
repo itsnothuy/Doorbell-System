@@ -632,3 +632,28 @@ def test_detector_factory_integration():
 - Performance targets achieved consistently
 - Zero critical errors in production deployment
 - Seamless integration with existing pipeline components
+
+---
+
+## 🤖 **For Coding Agents: Auto-Close Setup**
+
+### **Branch Naming Convention**
+When implementing this issue, create your branch using one of these patterns:
+- `issue-6/face-detection-worker`
+- `6-face-detection-worker` 
+- `issue-6/implement-face-detection`
+
+### **PR Creation**
+The GitHub Action will automatically append `Closes #6` to your PR description when you follow the branch naming convention above. This ensures the issue closes automatically when your PR is merged to the default branch.
+
+### **Manual Alternative**
+If you prefer manual control, include one of these in your PR description:
+```
+Closes #6
+Fixes #6
+Resolves #6
+```
+
+---
+
+**This issue implements the face detection worker pool as a critical stage in the Frigate-inspired pipeline architecture, providing scalable face detection with pluggable detector backends and optimized performance for real-time processing.**

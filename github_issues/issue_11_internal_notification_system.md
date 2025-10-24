@@ -11,7 +11,30 @@
 - **Priority**: High (Core security notification feature)
 
 ### Goals
-Implement a comprehensive internal notification system with alert management, rate limiting, and multiple delivery channels to replace external Telegram dependency with privacy-first internal notifications.
+---
+
+## 🤖 **For Coding Agents: Auto-Close Setup**
+
+### **Branch Naming Convention**
+When implementing this issue, create your branch using one of these patterns:
+- `issue-11/internal-notification-system`
+- `11-internal-notification-system` 
+- `issue-11/implement-internal-notifications`
+
+### **PR Creation**
+The GitHub Action will automatically append `Closes #11` to your PR description when you follow the branch naming convention above. This ensures the issue closes automatically when your PR is merged to the default branch.
+
+### **Manual Alternative**
+If you prefer manual control, include one of these in your PR description:
+```
+Closes #11
+Fixes #11
+Resolves #11
+```
+
+---
+
+**This issue implements a comprehensive internal notification system that provides privacy-first alerting and real-time event streaming for the Frigate-inspired doorbell security architecture, replacing external dependencies with secure local notifications.**
 
 ## 🎯 Requirements
 

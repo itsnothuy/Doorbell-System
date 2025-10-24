@@ -11,7 +11,30 @@
 - **Priority**: High (Critical path component)
 
 ### Goals
-Implement a high-performance frame capture worker with ring buffer architecture, GPIO integration, and multi-threaded processing optimized for real-time doorbell security applications.
+---
+
+## 🤖 **For Coding Agents: Auto-Close Setup**
+
+### **Branch Naming Convention**
+When implementing this issue, create your branch using one of these patterns:
+- `issue-4/frame-capture-worker`
+- `4-frame-capture-worker` 
+- `issue-4/implement-frame-capture`
+
+### **PR Creation**
+The GitHub Action will automatically append `Closes #4` to your PR description when you follow the branch naming convention above. This ensures the issue closes automatically when your PR is merged to the default branch.
+
+### **Manual Alternative**
+If you prefer manual control, include one of these in your PR description:
+```
+Closes #4
+Fixes #4
+Resolves #4
+```
+
+---
+
+**This issue implements frame capture with ring buffer architecture as the first stage of the Frigate-inspired pipeline, providing high-performance frame acquisition with GPIO event integration and hardware optimization for the doorbell security system.**
 
 ## 🎯 Requirements
 

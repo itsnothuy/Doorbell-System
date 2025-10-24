@@ -15,7 +15,8 @@ Thank you for contributing to the Doorbell Security System! Please ensure your P
 - [ ] Other: _please describe_
 
 **Related Issues:**
-<!-- Link any related issues using "Fixes #123" or "Relates to #123" -->
+<!-- Link any related issues using "Closes #123", "Fixes #123", or "Resolves #123" -->
+<!-- For coding agents: Use branch naming pattern "issue-N/description" for automatic issue closing -->
 
 ### 🔍 Changes Made
 <!-- Describe the specific changes in detail -->
