@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
 from src.face_manager import FaceManager
-from src.camera_handler import MockCameraHandler
+from src.hardware.camera_handler import MockCameraHandler
 from src.telegram_notifier import MockTelegramNotifier
 from src.gpio_handler import MockGPIOHandler
 
