@@ -130,7 +130,7 @@ class MessageBus:
             self.dispatch_thread.join(timeout=5.0)
         
         # Shutdown worker pool
-        self.worker_executor.shutdown(wait=True, timeout=10.0)
+        self.worker_executor.shutdown(wait=True)
         
         logger.info("Message bus stopped")
     
