@@ -26,10 +26,16 @@ class FrameCaptureConfig:
     fps: int = 10
     resolution: tuple = (640, 480)
     ring_buffer_size: int = 30
+    buffer_size: int = 30  # Alias for ring_buffer_size
     quality: int = 85
     format: str = "jpeg"
     retry_attempts: int = 3
     retry_delay: float = 0.5
+    
+    # Frame capture specific
+    capture_fps: int = 30
+    burst_count: int = 5
+    burst_interval: float = 0.2
     
     # Platform-specific settings
     use_threading: bool = True
