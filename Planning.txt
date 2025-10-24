@@ -1,0 +1,68 @@
+﻿Project Planning
+This document outlines the planned tasks for integrating Frigate's capabilities into the target application. The work is broken into manageable slices, each intended to be implemented and reviewed in its own pull request (PR). Follow this plan sequentially unless otherwise specified. Each slice references the relevant Architectural Decision Records (ADRs) and should update documentation and tests accordingly.
+Slice 1 - Repository Setup and Architecture Documentation
+* Goal: Establish the documentation and scaffolding required for development.
+* Tasks:
+* Create .github/copilot-instructions.md with guidelines for the coding agent. Ensure it references ADRs and this planning file.
+* Add an issue template for the coding agent at .github/ISSUE_TEMPLATE/agent_mvp.yml based on the provided template.
+* Write docs/architecture.md describing the high‑level pipeline, system architecture and key modules. Include a Mermaid diagram of the call graph (see below).
+* Create initial ADRs capturing the decisions around system architecture, face recognition and generative AI (ADR 001-003).
+* Write this planning document and commit it.
+Slice 2 - Generate Call Graph and Module Index
+* Goal: Provide an artefact to help developers understand call relationships and locate code quickly.
+* Tasks:
+* Write a script or static analysis tool that traverses the Frigate codebase and outputs a call graph for key functions (e.g. process_frames, EmbeddingsMaintainer.process_frame, FaceRealTimeProcessor.process_frame). Use Python's ast module or another library. The resulting graph should show how events propagate through the system (object update → embeddings maintainer → processors → face pipeline).
+* Convert the call graph into a Mermaid diagram and embed it in docs/architecture.md.
+* Generate a searchable symbol index (e.g. using grep or ripgrep) mapping modules to their responsibilities. Save this as docs/architecture.md or a separate file if it becomes large.
+* Add unit tests for the call graph generator if applicable.
+Slice 3 - Configuration and API Surface
+* Goal: Define the configuration interfaces and API endpoints for integrating Frigate's features.
+* Tasks:
+* Analyse Frigate's existing configuration schemas for face recognition and generative AI【62†L164-L172】. Mirror these options in the integration's configuration layer. Document them in a new section of docs/architecture.md.
+* Design or adapt API endpoints (HTTP/REST or MQTT) for managing the face library (create/delete identities, register images, list identities), enabling generative AI, and retrieving enriched events.
+* Write ADR 004 if any new decisions arise from this design work.
+* Implement the configuration schema and stub API handlers (no functional code yet). Add unit tests for the schema validation.
+Slice 4 - Face Recognition Integration
+* Goal: Implement local face recognition using the YuNet + ArcFace/FaceNet pipeline and expose training functionality.
+* Tasks:
+* Integrate the existing FaceRealTimeProcessor or port its logic to the integration codebase. Ensure it loads the YuNet and embedding models, performs alignment and matches against the face library.
+* Provide a storage layer for the face library, reusing Frigate's directory structure (faces/<name>) where possible. Implement functions to update embeddings when new images are added or identities renamed.
+* Expose API endpoints to create identities, register images, recognise faces on uploaded images and delete or rename identities.
+* Add unit and integration tests using sample images. Mock the embedding models in unit tests to avoid heavy computations.
+* Update documentation and ADRs if design adjustments are made.
+Slice 5 - Generative AI Integration
+* Goal: Implement optional generative AI descriptions for events.
+* Tasks:
+* Implement a provider interface to encapsulate calls to external generative models. Include at least one provider (e.g. OpenAI or Gemini) and a mock provider for testing.
+* Add configuration options to enable the feature, select a provider, supply API keys, choose the number of thumbnails and adjust description verbosity. Document these options.
+* Modify the enrichment pipeline to collect thumbnails at the end of an object's lifecycle and send them to the provider. Store the returned description as part of the event metadata.
+* Add tests for provider calls (using mocks) and for event storage when descriptions are enabled or disabled.
+* Update ADR 003 if changes are required.
+Slice 6 - System Integration and Finalisation
+* Goal: Integrate the enriched Frigate pipeline into the larger application and ensure it operates end‑to‑end.
+* Tasks:
+* Expose the events, faces and descriptions via the application's interfaces (e.g. GraphQL or REST). Ensure metadata flows to the user interface or automation system.
+* Conduct end‑to‑end testing with real video streams to verify detection, tracking, face recognition and generative descriptions.
+* Address performance bottlenecks or errors found in manual testing.
+* Finalise documentation, update ADRs if new decisions were made, and prepare a release note summarising the integration.
+Call Graph (Mermaid Example)
+Below is an example Mermaid diagram showing the high‑level flow from camera ingest through face recognition. The call graph generated in Slice 2 should provide a more detailed version of this.
+flowchart LR
+    A[Camera Frame Captured] --> B[Motion Detection]
+    B --> C[Object Detection]
+    C --> D[Object Tracker]
+    D --> E{Object Update}
+    E --> |publish| F[Embeddings Maintainer]
+    F --> G[Face Real‑Time Processor]
+    G --> H[Face Detection (YuNet)]
+    H --> I[Face Alignment & Embedding]
+    I --> J[Match Against Library]
+    J --> K{Known?}
+    K --> |Yes| L[Publish Sub‑Label]
+    K --> |No| M[Save Unknown Sample]
+    F --> N[Generative AI Processor]
+    N --> O[Send Thumbnails to Provider]
+    O --> P[Store Description]
+
+This planning document should be updated as tasks are completed or new requirements emerge. Each slice should leave the main branch in a working state with passing tests and updated documentation.
+

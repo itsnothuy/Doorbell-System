@@ -1,0 +1,64 @@
+﻿System Architecture and Design
+This document provides a deep dive into the architecture of the Frigate network video recorder (NVR) as integrated into this project. It summarises the pipeline, describes key modules, outlines the technical stack, highlights coding patterns and design decisions, and captures our testing strategy. Use this document as the starting point for development and as a reference when reviewing pull requests.
+Overview of the Pipeline
+Frigate's video processing pipeline is a sequential flow that operates on each camera stream. The major stages are:
+1. Frame capture: FFmpeg or go2rtc connects to the camera's RTSP or HTTP stream and decodes frames into YUV (I420) format. Frames are stored in shared memory buffers for zero‑copy access【18†L197-L202】.
+2. Motion detection: Simple frame differencing detects motion regions and gates further processing to conserve resources【24†L155-L163】.
+3. Object detection: A detector (TensorRT/ONNX/EdgeTPU/TFLite) identifies objects (persons, cars, etc.) in the frame and outputs bounding boxes and scores【24†L155-L163】.
+4. Object tracking: Detected objects are tracked over time, assigned IDs and persisted as events. Zone crossings and stationary states are handled here.
+5. Enrichments: A set of real‑time processors (face recognition, licence plate recognition, bird classification, etc.) subscribe to updates from the tracker and perform secondary processing.
+6. Event storage and notification: Events and recordings are stored in the SQLite database and clip directory. Notifications (e.g. MQTT messages) are sent when events are updated or completed.
+7. Optional generative AI: At the end of an event, thumbnails can be sent to a generative model to produce a human‑readable description 【12†L138-L146】.
+The entire pipeline runs inside a modular monolith - a single service/process containing multiple modules. Internal modules communicate via thread‑safe queues or ZeroMQ publishers/subscribers【18†L197-L202】.
+High‑Level Flow Diagram
+flowchart TD
+    F0[Camera ingest (ffmpeg/go2rtc)] --> F1[Motion Detection]
+    F1 --> F2[Object Detection]
+    F2 --> F3[Object Tracker]
+    F3 -->|publish object update| F4[Embeddings Maintainer]
+    F4 -->|invoke| F5[Face Real‑Time Processor]
+    F5 --> F6[Face Detection (YuNet or attribute)]
+    F6 --> F7[Alignment & Embedding (ArcFace/FaceNet)]
+    F7 --> F8[Match to Library]
+    F8 -->|known| F9[Publish Sub‑Label]
+    F8 -->|unknown| F10[Log Unknown]
+    F4 --> F11[Generative AI Processor (optional)]
+    F11 --> F12[Send thumbnails to provider]
+    F12 --> F13[Store description]
+    F3 --> F14[Event storage and notifications]
+Modules and Responsibilities
+ModuleDescriptionVideo CaptureLocated in frigate/video.py, this module spawns ffmpeg or go2rtc processes for each camera and writes raw YUV frames into shared memory buffers via SharedMemoryFrameManager【18†L197-L202】. It ensures that multiple consumers (motion detector, object detector, web UI) can access the same frame without copying.Motion DetectorSimple frame differencing implemented in C via OpenCV to detect motion regions. Only frames with motion progress to the heavier object detection stage【24†L155-L163】.Object DetectorWraps various backends (ONNX, TensorRT, EdgeTPU, TFLite) under a common interface in frigate/detectors/plugins. It runs the configured detection model and emits bounding boxes and labels.Object TrackerMaintains per‑object state (ID, bounding box history, zones, stationary status) and produces events. Implements the heartbeat logic that triggers enrichments on each update.Embeddings MaintainerSubscribes to tracker updates via ZeroMQ and coordinates real‑time processors. It fetches the relevant frame from shared memory and invokes each processor in turn. This is the hub for face recognition, licence plate recognition and optional generative AI.Face RecognitionImplemented in frigate/data_processing/real_time/face.py and frigate/data_processing/common/face/model.py. Detects faces (using YuNet if the detector does not provide face boxes), aligns them and embeds them with ArcFace/FaceNet【62†L164-L172】. Matches embeddings to a local face library and publishes a sub‑label on success【62†L173-L176】.Generative AIOptional processor in frigate/genai/. Collects thumbnails at the end of an event and sends them to a configured provider (OpenAI, Gemini or Ollama) to receive a textual description【12†L138-L146】.Database & StorageUses SQLite and Peewee ORM to store events, embeddings, vector indexes and metadata. Uses the vector0 extension to index high‑dimensional vectors (semantic search and face embeddings). Video clips and snapshots are saved on disk.API & UIExposes a REST API (FastAPI/Flask) and serves a React web UI. Integrates with Home Assistant via MQTT. The API also provides endpoints to manage the face library, enable generative AI, and query events.Technical Stack
+The integration relies on the following technologies:
+* Python 3.10+: Main language for the server. Type hints and dataclasses are used extensively. Concurrency is handled via threads, processes and asynchronous tasks.
+* C/C++ libraries: FFmpeg for video decoding and encoding; OpenCV for image processing and the YuNet face detector. Many heavy operations are offloaded to these native libraries.
+* Machine learning runtimes: ONNX Runtime, TensorRT, TFLite and OpenVINO for object detection; embedding models for face recognition.
+* SQLite: Local database with Peewee ORM. Extended with vector0 to store vector embeddings and perform similarity searches.
+* ZeroMQ: High‑performance publish/subscribe messaging between processes. Detectors publish results; the tracker and maintainers subscribe and process them.
+* MQTT: External messaging for notifications and Home Assistant integration.
+* React & TypeScript: Frontend codebase served by the API for the UI.
+Coding and Design Patterns
+Several design patterns are apparent throughout the codebase:
+* Observer pattern: Objects publish updates (e.g. detection results, object state changes) to which various subscribers (trackers, enrichments) react. ZeroMQ implements this publish/subscribe mechanism.【18†L197-L202】
+* Strategy pattern: Detectors and recognisers are abstracted via interfaces. For example, the object detector interface has multiple concrete strategies (ONNX, EdgeTPU, TensorRT). The recogniser interface allows choosing between ArcFace and FaceNet models.【18†L197-L202】
+* Modular monolith: All modules run in a single process space but are logically separated. Each component has a clear responsibility and communicates via well‑defined channels rather than direct calls.
+* Plugin architecture: New processors (e.g. bird classification) can be added by implementing a common interface and registering with the maintainer. This makes the system extensible without modifying core logic.
+Integrations and External Services
+* Home Assistant: Frigate publishes MQTT messages and provides a first‑party integration for Home Assistant. The integration will preserve these channels so that events and enriched metadata can be consumed by automations.
+* Frigate+: Optional cloud service that provides custom object detection models. It is not required for face recognition or generative AI but may improve detection accuracy.
+* Generative AI providers: When enabled, thumbnails are sent to external services (OpenAI, Gemini or local Ollama) to obtain a description【12†L138-L146】. This integration is optional and must be explicitly configured.
+* Vector search: Semantic search uses local CLIP embeddings to match textual queries to events. Descriptions produced by generative AI are stored alongside these embeddings【14†L283-L292】.
+Code Quality and Best Practices
+* Clarity and modularity: Functions and classes are well named and grouped by responsibility. Use type hints for all public functions.
+* Configuration validation: Validate configuration at startup and provide clear error messages. Mirror Frigate's configuration fields for face recognition and generative AI.
+* Defensive programming: Handle errors from external services gracefully. When calling generative AI providers, catch timeouts and network errors to ensure the pipeline continues to function without descriptions.
+* Resource management: Use shared memory for frames, release file handles promptly and avoid unnecessary copies. Detect when hardware accelerators fail and fall back to CPU gracefully.
+* Documentation: Keep this document, ADRs and planning files up to date. Each PR that changes behaviour should update relevant docs.
+Testing Strategy
+Refer to docs/adr/2025-10-23-004-testing-strategy.md for a detailed discussion. In summary, tests should cover unit logic, integration of modules using sample video clips, and manual testing for hardware specificities. Continuous integration must run all tests and keep the build green.
+Implementation Guidelines for Integration
+* Follow ADRs. The decisions recorded in ADR 001-004 guide the architecture, face recognition pipeline, generative AI integration and testing strategy. Do not deviate without writing a new ADR.
+* Incremental development. Implement the planning slices in order, committing working code in each PR. Avoid large, unreviewable changes.
+* Local processing first. Keep detection, tracking and recognition local. External calls (generative AI) must be clearly optional and configurable.
+* Security and privacy. Do not log or transmit raw video or embeddings unless the user requests it. Use encryption where appropriate for API keys.
+By adhering to this architecture and the accompanying planning and ADR documents, the integration work will remain coherent, extensible and easy to maintain.
+

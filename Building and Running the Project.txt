@@ -1,0 +1,45 @@
+﻿Building and Running the Project
+This document describes how to build, run and test the integration locally. It assumes a Unix‑like environment with Python 3.10+.
+Environment Setup
+1. Clone the repository.
+  git clone <your-fork-url> frigate-integration
+cd frigate-integration
+2. Create a virtual environment.
+  python3 -m venv venv
+source venv/bin/activate
+3. Install dependencies. The project uses pip and a requirements.txt file to manage dependencies.
+  pip install --upgrade pip
+pip install -r requirements.txt
+  If you plan to run the web UI or build the frontend, you will additionally need Node.js (v16+) and npm.
+4. Download models. On first run, the face detection and embedding models (YuNet, ArcFace, FaceNet) will be downloaded to a cache directory. To prepopulate the cache (recommended for automated tests), run:
+  python -m frigate.embeddings.onnx.download_models
+Running the Server
+Development Mode
+To run the Python server directly:
+python -m frigate
+This will read your configuration file (default config.yml in the project root) and start processing your configured cameras. The REST API will be available on http://localhost:5000 by default. Use the web UI to monitor events and manage the face library.
+Docker / Container Mode
+For deployments, building a container is often easier. A sample Dockerfile is provided in the repository. Build and run it with:
+docker build -t frigate-integration .
+docker run --rm -p 5000:5000 -v $(pwd)/clips:/media/frigate/clips -v $(pwd)/db:/data frigate-integration
+Mount the clips directory to persist recordings and the db directory for the SQLite database. You can also mount your configuration file into /config/config.yml in the container.
+Running Tests
+Tests are written using pytest. To run all tests:
+pytest -q
+The test suite includes unit tests, integration tests with sample videos and mocks for external services. You may need to install additional test dependencies listed in requirements-test.txt.
+Running a Sample Pipeline Test
+To verify that the pipeline is functioning end‑to‑end, you can use a short sample video clip included in the tests/data directory. Run the following command after activating your virtual environment:
+python -m frigate.tests.run_sample
+This will process the sample clip and output detected events, faces and optional generative descriptions.
+Building the Frontend
+If you intend to work on or test the web UI:
+1. Install Node.js (v16+) and npm.
+2. Navigate to the web directory (if present).
+3. Install dependencies: npm install.
+4. Run the development server: npm run dev. The UI will be available on a specified port and will proxy API requests to the backend.
+Configuration Tips
+* The default configuration file is config.yml. Copy config.example.yml if it exists and customise camera URLs, face recognition settings and generative AI options as needed.
+* To enable generative AI, add a genai section with provider and api_key fields. See ADR 003 and the config reference for details.【12†L153-L161】
+* Face recognition settings are under the face_recognition key. You can set enabled, model_size, unknown_score, recognition_threshold and min_faces【62†L164-L172】.
+Refer to the documentation in docs/ and the ADRs for more details on configuration and system behaviour.
+

@@ -2,54 +2,60 @@
 
 ## 🏗️ System Architecture Overview
 
-The Doorbell Security System is designed as a modular, privacy-first face recognition system that operates locally on edge devices. The architecture emphasizes modularity, cross-platform compatibility, and security while maintaining simplicity and reliability.
+The Doorbell Security System is designed as a **modular monolith** inspired by Frigate NVR's architecture. It runs as a single container/process but orchestrates multiple specialized components through a sophisticated pipeline architecture. The system emphasizes real-time video processing, event-driven design, and high-performance multi-threading.
 
 ## 🎯 Architectural Principles
 
-### Design Principles
+### Core Design Philosophy (Frigate-Inspired)
 
-1. **Privacy by Design**: All biometric processing happens locally
-2. **Modularity**: Loosely coupled components with clear interfaces
-3. **Cross-Platform**: Works on Raspberry Pi, macOS, Linux, and Docker
-4. **Fail-Safe**: Graceful degradation when components are unavailable
-5. **Extensibility**: Easy to add new features and integrations
-6. **Security First**: Security considerations built into every component
-7. **Resource Conscious**: Optimized for resource-constrained devices
+1. **Modular Monolith**: Single service with loosely-coupled internal modules
+2. **Pipeline Architecture**: Sequential processing stages with clear data flow
+3. **Producer-Consumer**: Event-driven processing with queues and workers
+4. **Multi-Processing**: Parallel processing for CPU-intensive tasks
+5. **Zero-Message Queuing**: High-performance inter-process communication
+6. **Hardware Abstraction**: Plugin-based detector strategy pattern
+7. **Privacy by Design**: All processing happens locally on edge devices
+8. **Resource Optimization**: Designed for resource-constrained devices
 
-### Architectural Patterns
+### Frigate-Inspired Patterns
 
-- **Layered Architecture**: Clear separation between hardware, business logic, and presentation
-- **Event-Driven**: Asynchronous event processing for real-time responsiveness
-- **Plugin Architecture**: Configurable components that can be enabled/disabled
-- **Factory Pattern**: Platform-specific implementations with common interfaces
-- **Observer Pattern**: Event notification and callback mechanisms
+- **Processing Pipeline**: Frame capture → Motion detection → Face detection → Recognition → Event processing
+- **Strategy Pattern**: Pluggable face detection backends (CPU, GPU, EdgeTPU)
+- **Observer/Publisher-Subscriber**: Event broadcasting with multiple subscribers
+- **Worker Pool**: Multi-threaded processing with job queues
+- **State Machine**: Event lifecycle management
+- **Circuit Breaker**: Fault tolerance and graceful degradation
 
 ## 🏛️ System Architecture
 
-### High-Level Architecture
+### Frigate-Inspired Pipeline Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                       │
-├─────────────────────────┬───────────────────────────────────────┤
-│     Web Interface       │         External APIs               │
-│   (Flask Dashboard)     │      (Telegram Bot API)             │
-└─────────────────────────┴───────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                      Application Layer                          │
-├─────────────────────────────────────────────────────────────────┤
-│                 Doorbell Security System                       │
-│              (Main Orchestrator & Controller)                  │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                       Business Layer                            │
-├───────────────┬─────────────────┬───────────────────────────────┤
-│ Face Manager  │ Telegram        │      Event Processing        │
-│ (Recognition) │ Notifier        │    (Threading & Queuing)     │
-└───────────────┴─────────────────┴───────────────────────────────┘
-                                    │
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              DOORBELL SECURITY PIPELINE                         │
+│                                (Modular Monolith)                              │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
+│   GPIO      │    │    FRAME     │    │   MOTION     │    │    FACE     │
+│  TRIGGER    │───▶│   CAPTURE    │───▶│  DETECTION   │───▶│ DETECTION   │
+│ (Doorbell)  │    │  (Camera)    │    │  (Optional)  │    │ (Strategy)  │
+└─────────────┘    └──────────────┘    └──────────────┘    └─────────────┘
+                                                                    │
+┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
+│ ENRICHMENT  │    │    EVENT     │    │     FACE     │    │      │
+│ PROCESSOR   │◀───│  PROCESSOR   │◀───│ RECOGNITION  │◀───┘      │
+│(Notifications)│   │  (Tracker)   │    │  (Encoding)  │           │
+└─────────────┘    └──────────────┘    └──────────────┘           │
+                                                                    │
+┌─────────────────────────────────────────────────────────────────────┐
+│                        COMMUNICATION BUS                           │
+│                    (ZeroMQ-like Message Queue)                     │
+├─────────────┬─────────────────┬─────────────────┬─────────────────┤
+│   Storage   │   Web API       │    Telegram     │   Monitoring    │
+│  (SQLite)   │   (Flask)       │   (Notifier)    │   (Metrics)     │
+└─────────────┴─────────────────┴─────────────────┴─────────────────┘
+```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Hardware Abstraction                        │
 ├───────────────┬─────────────────┬───────────────────────────────┤
@@ -65,29 +71,42 @@ The Doorbell Security System is designed as a modular, privacy-first face recogn
 └───────────────┴─────────────────┴───────────────────────────────┘
 ```
 
-### Component Interaction Diagram
+### Pipeline Flow Diagram
 
 ```
-    ┌─────────────────┐
-    │   GPIO Event    │
-    │  (Doorbell)     │
-    └─────────┬───────┘
-              │ trigger
-              ▼
-    ┌─────────────────┐      ┌─────────────────┐
-    │ Doorbell        │──────│ Camera Handler  │
-    │ Security System │      │                 │
-    └─────────┬───────┘      └─────────────────┘
-              │                       │
-              │ process               │ capture
-              ▼                       ▼
-    ┌─────────────────┐      ┌─────────────────┐
-    │ Face Manager    │      │ Image Data      │
-    │                 │◄─────│                 │
-    └─────────┬───────┘      └─────────────────┘
-              │
-              │ identify
-              ▼
+┌─────────────┐
+│ GPIO Event  │ ──trigger──▶ ┌─────────────────┐
+│ (Doorbell)  │              │  Event Queue    │
+└─────────────┘              │ (High Priority) │
+                             └────────┬────────┘
+                                      │ dequeue
+                                      ▼
+┌─────────────┐ ──capture──▶ ┌─────────────────┐ ──frame──▶ ┌─────────────┐
+│ Frame       │              │  Capture Queue  │            │ Motion      │
+│ Capture     │              │ (Ring Buffer)   │            │ Detection   │
+│ Worker      │              └─────────────────┘            │ Worker      │
+└─────────────┘                                             └──────┬──────┘
+                                                                   │ motion_detected
+                                                                   ▼
+┌─────────────┐ ◀──regions── ┌─────────────────┐ ──detect──▶ ┌─────────────┐
+│ Detection   │              │ Detection Queue │            │ Face        │
+│ Results     │              │ (Motion ROIs)   │            │ Detection   │
+│ Queue       │              └─────────────────┘            │ Worker Pool │
+└──────┬──────┘                                             └─────────────┘
+       │ face_detected
+       ▼
+┌─────────────┐ ──encoding──▶ ┌─────────────────┐ ──match──▶ ┌─────────────┐
+│ Recognition │              │ Recognition     │            │ Event       │
+│ Worker      │              │ Queue           │            │ Processor   │
+└─────────────┘              └─────────────────┘            └──────┬──────┘
+                                                                   │ events
+                                                                   ▼
+┌─────────────┐ ◀─notify───── ┌─────────────────┐ ◀─enrich─── ┌─────────────┐
+│ Notification│              │ Enrichment      │            │ Event       │
+│ Workers     │              │ Queue           │            │ Database    │
+│ (Telegram)  │              │ (Parallel)      │            │ (SQLite)    │
+└─────────────┘              └─────────────────┘            └─────────────┘
+```
     ┌─────────────────┐      ┌─────────────────┐
     │ Recognition     │      │ Telegram        │
     │ Result          │─────►│ Notifier        │
