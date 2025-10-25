@@ -112,6 +112,17 @@ class BaseDetector(ABC):
         
         self.logger.info(f"Initialized {self.detector_type.value} detector with {self.model_type.value} model")
     
+    @classmethod
+    @abstractmethod
+    def is_available(cls) -> bool:
+        """
+        Check if this detector is available on the current system.
+        
+        Returns:
+            bool: True if detector can be used, False otherwise
+        """
+        pass
+    
     @abstractmethod
     def _get_detector_type(self) -> DetectorType:
         """Return the detector type for this implementation."""
