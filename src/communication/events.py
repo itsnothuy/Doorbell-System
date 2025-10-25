@@ -12,7 +12,12 @@ from typing import Dict, Any, Optional, List, Union
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-import numpy as np
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
 
 
 class EventType(Enum):
@@ -118,13 +123,13 @@ class FaceDetection:
     """Represents a detected face with metadata."""
     bounding_box: BoundingBox
     landmarks: Optional[Dict[str, Any]] = None
-    encoding: Optional[np.ndarray] = None
+    encoding: Optional[Any] = None  # np.ndarray when numpy available
     confidence: float = 0.0
     quality_score: float = 0.0
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
-        return {
+        result = {
             'bounding_box': {
                 'x': self.bounding_box.x,
                 'y': self.bounding_box.y,
@@ -135,8 +140,17 @@ class FaceDetection:
             'landmarks': self.landmarks,
             'confidence': self.confidence,
             'quality_score': self.quality_score,
-            'encoding': self.encoding.tolist() if self.encoding is not None else None
+            'encoding': None
         }
+        
+        # Handle encoding serialization
+        if self.encoding is not None:
+            if NUMPY_AVAILABLE and hasattr(self.encoding, 'tolist'):
+                result['encoding'] = self.encoding.tolist()
+            else:
+                result['encoding'] = self.encoding
+        
+        return result
 
 
 @dataclass
@@ -220,7 +234,7 @@ class DoorbellEvent(PipelineEvent):
 class FrameEvent(PipelineEvent):
     """Frame capture/processing event."""
     frame_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    frame_data: Optional[np.ndarray] = None
+    frame_data: Optional[Any] = None  # np.ndarray when numpy available
     frame_path: Optional[str] = None
     resolution: Optional[tuple] = None
     capture_time: float = field(default_factory=time.time)
@@ -242,7 +256,10 @@ class FrameEvent(PipelineEvent):
     def frame_size(self) -> Optional[int]:
         """Get frame data size in bytes."""
         if self.frame_data is not None:
-            return self.frame_data.nbytes
+            if hasattr(self.frame_data, 'nbytes'):
+                return self.frame_data.nbytes
+            # Try to estimate size for non-numpy arrays
+            return len(str(self.frame_data))
         return None
 
 
@@ -442,13 +459,17 @@ def create_doorbell_event(channel: int = 18) -> DoorbellEvent:
     )
 
 
-def create_frame_event(frame_data: np.ndarray, frame_path: Optional[str] = None) -> FrameEvent:
+def create_frame_event(frame_data: Any, frame_path: Optional[str] = None) -> FrameEvent:
     """Convenience function to create a frame event."""
+    resolution = None
+    if frame_data is not None and hasattr(frame_data, 'shape'):
+        resolution = frame_data.shape[:2]
+    
     return FrameEvent(
         event_type=EventType.FRAME_CAPTURED,
         frame_data=frame_data,
         frame_path=frame_path,
-        resolution=frame_data.shape[:2] if frame_data is not None else None,
+        resolution=resolution,
         source='frame_capture'
     )
 
