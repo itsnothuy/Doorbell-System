@@ -103,6 +103,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"
@@ -137,6 +138,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"
@@ -177,6 +179,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"
@@ -217,6 +220,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
             faces.append(face)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=faces,
             detection_time=0.1,
             detector_type="cpu"
@@ -247,6 +251,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"
@@ -276,6 +281,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"
@@ -336,6 +342,7 @@ class TestFaceRecognitionWorker(unittest.TestCase):
         face = FaceDetection(bounding_box=bbox, confidence=0.9)
         
         detection_event = FaceDetectionEvent(
+            event_type=EventType.FACES_DETECTED,
             faces=[face],
             detection_time=0.1,
             detector_type="cpu"

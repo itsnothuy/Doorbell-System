@@ -128,6 +128,7 @@ class FaceRecognitionWorker(PipelineWorker):
             # Create recognition event
             recognition_time = time.time() - start_time
             recognition_event = FaceRecognitionEvent(
+                event_type=EventType.FACE_RECOGNIZED,  # Will be updated in __post_init__
                 recognitions=recognitions,
                 recognition_time=recognition_time,
                 source=self.worker_id,
