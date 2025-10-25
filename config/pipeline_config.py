@@ -100,18 +100,37 @@ class FaceRecognitionConfig:
     
     # Recognition parameters
     tolerance: float = 0.6
+    blacklist_tolerance: float = 0.5  # Stricter for blacklist
+    min_confidence: float = 0.4
     face_jitter: int = 1
     num_encodings: int = 1
+    number_of_times_to_upsample: int = 1
+    batch_size: int = 5
     
     # Database settings
     known_faces_path: str = "data/known_faces"
     blacklist_faces_path: str = "data/blacklist_faces"
+    database_path: str = "data/faces.db"
+    max_faces_per_person: int = 10
+    backup_enabled: bool = True
+    backup_interval_hours: int = 24
+    
+    # Cache settings
+    cache: Dict[str, Any] = field(default_factory=lambda: {
+        'enabled': True,
+        'cache_size': 1000,
+        'ttl_seconds': 3600,
+        'warm_up_enabled': True,
+        'warm_up_limit': 100
+    })
     cache_encodings: bool = True
     cache_file: str = "data/face_encodings_cache.pkl"
     
     # Performance settings
     max_queue_size: int = 50
     timeout: float = 15.0
+    max_concurrent_recognitions: int = 10
+    encoding_timeout_seconds: float = 5.0
     
     # Advanced settings
     similarity_metric: str = "euclidean"  # euclidean, cosine
