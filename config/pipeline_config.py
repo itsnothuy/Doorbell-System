@@ -63,23 +63,31 @@ class FaceDetectionConfig:
     """Configuration for face detection stage."""
     enabled: bool = True
     worker_count: int = 2
-    detector_type: str = "cpu"  # cpu, gpu, edgetpu
-    model_type: str = "hog"  # hog, cnn, retinaface
+    detector_type: str = "cpu"  # cpu, gpu, edgetpu, mock
+    model: str = "hog"  # hog or cnn for CPU detector
+    model_type: str = "hog"  # Deprecated: use 'model' instead
     
     # Detection parameters
+    number_of_times_to_upsample: int = 1
     scale_factor: float = 1.1
     min_neighbors: int = 5
     min_face_size: tuple = (30, 30)
+    max_face_size: tuple = (1000, 1000)
     confidence_threshold: float = 0.5
     
     # Performance settings
     max_queue_size: int = 100
     batch_size: int = 1
+    job_timeout: float = 30.0  # Job expiration timeout
     timeout: float = 10.0
     
     # Hardware acceleration
     gpu_memory_fraction: float = 0.3
     use_tensorrt: bool = False
+    
+    # Priority settings
+    doorbell_priority: int = 1  # Higher priority for doorbell events
+    continuous_priority: int = 2  # Lower priority for continuous monitoring
 
 
 @dataclass
