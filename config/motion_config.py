@@ -143,10 +143,8 @@ class MotionConfig:
     
     def apply_platform_optimizations(self) -> None:
         """Apply platform-specific optimizations."""
-        platform_info = platform_detector.get_platform_info()
-        
         # Raspberry Pi optimizations
-        if platform_info.get('is_raspberry_pi', False):
+        if platform_detector.is_raspberry_pi:
             # More aggressive frame resizing for limited CPU
             self.frame_resize_factor = 0.5
             
@@ -162,20 +160,20 @@ class MotionConfig:
             # Lower thresholds for better performance
             self.min_contour_area = 400
         
-        # Docker optimizations
-        elif platform_info.get('in_docker', False):
+        # Docker optimizations (check for containerized environment)
+        elif os.path.exists('/.dockerenv'):
             # Moderate settings for containerized environment
             self.frame_resize_factor = 0.6
             self.skip_frame_count = 0
         
         # Development/macOS optimizations
-        elif platform_info.get('platform') == 'darwin':
+        elif platform_detector.is_macos:
             # Higher quality for development
             self.frame_resize_factor = 0.8
             self.skip_frame_count = 0
             
-            # Use KNN for better quality
-            self.bg_subtractor_type = "MOG2"  # MOG2 is more stable
+            # Use MOG2 for stability
+            self.bg_subtractor_type = "MOG2"
     
     def optimize_for_low_power(self) -> None:
         """Optimize configuration for low-power devices."""

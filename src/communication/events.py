@@ -8,7 +8,7 @@ the pipeline for type-safe event processing.
 
 import time
 import uuid
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
