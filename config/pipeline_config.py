@@ -56,6 +56,26 @@ class MotionDetectionConfig:
     background_subtraction: bool = True
     morphology_enabled: bool = True
     contour_filtering: bool = True
+    
+    # New comprehensive settings (aligned with motion_config.py)
+    motion_threshold: float = 25.0
+    min_contour_area: int = 500
+    gaussian_blur_kernel: tuple = (21, 21)
+    bg_subtractor_type: str = "MOG2"  # MOG2, KNN
+    bg_learning_rate: float = 0.01
+    bg_history: int = 500
+    bg_var_threshold: int = 50
+    motion_history_size: int = 10
+    motion_smoothing_factor: float = 0.3
+    min_motion_duration: float = 0.5
+    max_static_duration: float = 30.0
+    roi_enabled: bool = False
+    roi_coordinates: Optional[tuple] = None
+    frame_resize_factor: float = 0.5
+    skip_frame_count: int = 0
+    worker_id: str = "motion_detector"
+    queue_size: int = 100
+    timeout: float = 10.0
 
 
 @dataclass

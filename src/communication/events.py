@@ -8,7 +8,7 @@ the pipeline for type-safe event processing.
 
 import time
 import uuid
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
@@ -276,6 +276,83 @@ class MotionEvent(PipelineEvent):
             'motion_score': self.motion_score,
             'frame_id': self.frame_event.frame_id if self.frame_event else None
         })
+
+
+@dataclass
+class MotionResult:
+    """Result of motion detection analysis."""
+    motion_detected: bool
+    motion_score: float
+    motion_regions: List[Tuple[int, int, int, int]]  # Bounding boxes (x, y, w, h)
+    contour_count: int
+    largest_contour_area: int
+    motion_center: Optional[Tuple[int, int]]
+    frame_timestamp: float
+    processing_time: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            'motion_detected': self.motion_detected,
+            'motion_score': self.motion_score,
+            'motion_regions': self.motion_regions,
+            'contour_count': self.contour_count,
+            'largest_contour_area': self.largest_contour_area,
+            'motion_center': self.motion_center,
+            'frame_timestamp': self.frame_timestamp,
+            'processing_time': self.processing_time
+        }
+
+
+@dataclass
+class MotionHistory:
+    """Motion detection history for trend analysis."""
+    recent_scores: List[float] = field(default_factory=list)
+    motion_events: List[float] = field(default_factory=list)  # Timestamps
+    static_duration: float = 0.0
+    trend_direction: str = "stable"  # "increasing", "decreasing", "stable"
+    last_motion_time: Optional[float] = None
+    
+    def add_score(self, score: float, timestamp: float, is_motion: bool) -> None:
+        """Add a new motion score to history."""
+        self.recent_scores.append(score)
+        
+        if is_motion:
+            self.motion_events.append(timestamp)
+            self.last_motion_time = timestamp
+            self.static_duration = 0.0
+        else:
+            if self.last_motion_time:
+                self.static_duration = timestamp - self.last_motion_time
+    
+    def calculate_trend(self) -> str:
+        """Calculate motion trend from recent scores."""
+        if len(self.recent_scores) < 3:
+            return "stable"
+        
+        # Compare first half to second half of recent scores
+        mid = len(self.recent_scores) // 2
+        first_half_avg = sum(self.recent_scores[:mid]) / mid
+        second_half_avg = sum(self.recent_scores[mid:]) / (len(self.recent_scores) - mid)
+        
+        diff = second_half_avg - first_half_avg
+        
+        if diff > 5.0:  # Threshold for "increasing"
+            return "increasing"
+        elif diff < -5.0:  # Threshold for "decreasing"
+            return "decreasing"
+        else:
+            return "stable"
+    
+    def trim_history(self, max_size: int) -> None:
+        """Trim history to maximum size."""
+        if len(self.recent_scores) > max_size:
+            self.recent_scores = self.recent_scores[-max_size:]
+        
+        # Keep only recent motion events (last minute)
+        if self.motion_events:
+            cutoff = time.time() - 60.0
+            self.motion_events = [t for t in self.motion_events if t > cutoff]
 
 
 @dataclass
