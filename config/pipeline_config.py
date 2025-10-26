@@ -182,6 +182,13 @@ class StorageConfig:
 @dataclass
 class NotificationConfig:
     """Configuration for notifications."""
+    # Internal notification system
+    enabled: bool = True
+    debounce_period: float = 5.0
+    aggregation_window: float = 30.0
+    max_per_hour: int = 100
+    
+    # Legacy telegram settings
     telegram_enabled: bool = True
     telegram_timeout: float = 30.0
     
@@ -190,13 +197,41 @@ class NotificationConfig:
     max_image_size: int = 2048  # pixels
     image_quality: int = 85
     
-    # Rate limiting
+    # Rate limiting (legacy, kept for backward compatibility)
     rate_limit_window: int = 60  # seconds
     max_notifications_per_window: int = 10
     
     # Priority handling
     priority_bypass_rate_limit: bool = True
     emergency_contacts: List[str] = field(default_factory=list)
+    
+    # Internal notification system configuration
+    alerts: Dict[str, Any] = field(default_factory=lambda: {
+        'blacklist_detection': {'enabled': True, 'priority': 'critical'},
+        'known_person_detection': {'enabled': True, 'priority': 'info'},
+        'unknown_person_detection': {'enabled': True, 'priority': 'warning'},
+        'system_alerts': {'enabled': True, 'priority': 'warning'}
+    })
+    
+    rate_limiting: Dict[str, Any] = field(default_factory=lambda: {
+        'enabled': True,
+        'max_per_minute': 10,
+        'max_per_hour': 100,
+        'burst_allowance': 3,
+        'cooldown_period': 60
+    })
+    
+    delivery: Dict[str, Any] = field(default_factory=lambda: {
+        'web_interface': {'enabled': True, 'endpoint': '/api/notifications', 'real_time': True},
+        'file_log': {'enabled': True, 'path': 'data/logs/notifications.log', 'format': 'json'},
+        'console': {'enabled': False}
+    })
+    
+    storage: Dict[str, Any] = field(default_factory=lambda: {
+        'enabled': True,
+        'db_path': 'data/notifications.db',
+        'retention_days': 30
+    })
 
 
 @dataclass
