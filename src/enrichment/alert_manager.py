@@ -251,6 +251,8 @@ class AlertManager:
         )
         
         self.alerts_created += 1
+        self.alerts_by_type[AlertType.TEST_NOTIFICATION.value] = \
+            self.alerts_by_type.get(AlertType.TEST_NOTIFICATION.value, 0) + 1
         
         return alert
     

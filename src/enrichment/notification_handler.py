@@ -182,10 +182,14 @@ class NotificationHandler(PipelineWorker):
     
     def _generate_deduplication_key(self, alert: Alert) -> str:
         """Generate key for notification deduplication."""
+        # Use alert type as base key
+        key = alert.alert_type
+        
+        # Add person identifier for person-specific deduplication
         if hasattr(alert, 'person_id') and alert.person_id:
-            return f"{alert.alert_type}_{alert.person_id}"
-        else:
-            return f"{alert.alert_type}_unknown"
+            key = f"{key}_{alert.person_id}"
+        
+        return key
     
     def _track_recent_notification(self, alert: Alert):
         """Track notification for deduplication."""
