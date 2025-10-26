@@ -308,9 +308,9 @@ class TestRateLimiterEdgeCases(unittest.TestCase):
             priority=AlertPriority.INFO
         )
         
-        # With zero burst allowance, first notification should still be blocked
-        # because 0 < 0 is False. This is expected behavior - burst_allowance
-        # should be at least 1 for any notifications to pass.
+        # With zero burst allowance, _check_burst_allowance will evaluate 
+        # recent_count < burst_allowance, which is 0 < 0, returning False.
+        # This means all notifications will be blocked by burst check.
         result = limiter.allow_notification(alert)
         self.assertFalse(result, "Zero burst allowance should block all notifications")
     
