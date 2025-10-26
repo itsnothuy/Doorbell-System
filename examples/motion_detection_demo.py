@@ -82,7 +82,8 @@ def run_basic_demo():
     
     # Subscribe to motion analyzed events
     print("[2] Subscribing to motion events...")
-    message_bus.subscribe('motion_analyzed', motion_event_handler, 'demo_subscriber')
+    subscriber_id = f'demo_subscriber_{int(time.time() * 1000)}'
+    message_bus.subscribe('motion_analyzed', motion_event_handler, subscriber_id)
     
     # Create motion detector with default config
     print("[3] Creating motion detector...")
@@ -106,15 +107,16 @@ def run_basic_demo():
     print("-" * 60)
     
     for i in range(10):
-        # Alternate between static and motion frames
+        # Alternate between static and motion frames (motion every 3rd frame)
         has_motion = i % 3 == 0
         frame = create_test_frame(add_motion=has_motion)
         
         # Create frame event
+        # Note: resolution is (width, height), frame.shape is (height, width, channels)
         frame_event = FrameEvent(
             event_type=EventType.FRAME_CAPTURED,
             frame_data=frame,
-            resolution=(frame.shape[0], frame.shape[1])
+            resolution=(frame.shape[1], frame.shape[0])  # (width, height)
         )
         
         # Publish frame
@@ -199,7 +201,7 @@ def run_custom_config_demo():
             frame_event = FrameEvent(
                 event_type=EventType.FRAME_CAPTURED,
                 frame_data=frame,
-                resolution=(frame.shape[0], frame.shape[1])
+                resolution=(frame.shape[1], frame.shape[0])  # (width, height)
             )
             
             message_bus.publish('frame_captured', frame_event)
