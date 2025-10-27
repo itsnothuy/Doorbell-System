@@ -23,6 +23,20 @@ from src.communication.queues import (
 )
 
 
+# Performance test configuration constants
+THROUGHPUT_MIN_THRESHOLD = 1000  # messages/second
+DELIVERY_THROUGHPUT_MIN = 500    # messages/second
+LATENCY_MAX_AVG_MS = 5.0        # milliseconds
+LATENCY_MAX_E2E_MS = 10.0       # milliseconds
+QUEUE_THROUGHPUT_MIN = 5000     # operations/second
+CONCURRENT_THROUGHPUT_MIN = 1000 # messages/second
+
+# Test timing constants
+MAX_WAIT_TIMEOUT = 30           # seconds
+DELIVERY_WAIT_TIME = 2.0        # seconds
+MESSAGE_BATCH_DELAY = 0.001     # seconds
+
+
 class TestMessageBusPerformance:
     """Performance benchmarks for message bus operations."""
     
@@ -52,8 +66,9 @@ class TestMessageBusPerformance:
         print(f"\n📊 Publish Throughput: {throughput:.0f} messages/second")
         print(f"   Duration: {duration:.2f}s for {message_count} messages")
         
-        # Target: >5,000 messages/second
-        assert throughput > 1000, f"Throughput {throughput:.0f} below minimum"
+        # Target: >1,000 messages/second
+        assert throughput > THROUGHPUT_MIN_THRESHOLD, \
+            f"Throughput {throughput:.0f} below minimum {THROUGHPUT_MIN_THRESHOLD}"
     
     @pytest.mark.slow
     def test_subscribe_delivery_throughput(self, message_bus):
@@ -75,8 +90,7 @@ class TestMessageBusPerformance:
             message_bus.publish("throughput_test", {"sequence": i})
         
         # Wait for all messages to be delivered
-        max_wait = 30  # seconds
-        while received_count[0] < message_count and (time.time() - start_time) < max_wait:
+        while received_count[0] < message_count and (time.time() - start_time) < MAX_WAIT_TIMEOUT:
             time.sleep(0.1)
         
         duration = time.time() - start_time
@@ -87,7 +101,8 @@ class TestMessageBusPerformance:
         print(f"   Duration: {duration:.2f}s")
         
         assert received_count[0] >= message_count * 0.95  # Allow 5% loss
-        assert throughput > 500, f"Throughput {throughput:.0f} below minimum"
+        assert throughput > DELIVERY_THROUGHPUT_MIN, \
+            f"Throughput {throughput:.0f} below minimum {DELIVERY_THROUGHPUT_MIN}"
     
     @pytest.mark.slow
     def test_multiple_subscribers_throughput(self, message_bus):
@@ -117,7 +132,7 @@ class TestMessageBusPerformance:
             message_bus.publish("multi_sub_test", {"sequence": i})
         
         # Wait for delivery
-        time.sleep(2.0)
+        time.sleep(DELIVERY_WAIT_TIME)
         
         duration = time.time() - start_time
         total_delivered = sum(received_counts)
@@ -167,51 +182,55 @@ class TestMessageLatency:
         print(f"   P95: {p95_latency:.3f}ms")
         print(f"   P99: {p99_latency:.3f}ms")
         
-        # Target: <1ms average
-        assert avg_latency < 5.0, f"Average latency {avg_latency:.3f}ms too high"
+        # Target: <5ms average
+        assert avg_latency < LATENCY_MAX_AVG_MS, \
+            f"Average latency {avg_latency:.3f}ms exceeds maximum {LATENCY_MAX_AVG_MS}ms"
     
     @pytest.mark.slow
     def test_end_to_end_latency(self, message_bus):
         """Measure end-to-end delivery latency."""
         iterations = 500
         latencies = []
-        received_times = {}
+        send_times = {}
+        receive_times = {}
         lock = threading.Lock()
         
         def latency_handler(message):
             receive_time = time.perf_counter()
+            msg_id = message.data['id']
             with lock:
-                received_times[message.data['id']] = receive_time
+                receive_times[msg_id] = receive_time
         
         message_bus.subscribe("e2e_latency", latency_handler, "latency_sub")
         
         for i in range(iterations):
             send_time = time.perf_counter()
-            message_bus.publish("e2e_latency", {"id": i, "send_time": send_time})
-            time.sleep(0.001)  # Small delay between messages
+            send_times[i] = send_time
+            message_bus.publish("e2e_latency", {"id": i})
+            time.sleep(MESSAGE_BATCH_DELAY)
         
         # Wait for all messages
-        time.sleep(2.0)
+        time.sleep(DELIVERY_WAIT_TIME)
         
-        # Calculate latencies
+        # Calculate latencies using actual send/receive times
         for i in range(iterations):
-            if i in received_times:
-                # Reconstruct approximate send time (not perfectly accurate but good enough)
-                latency = (received_times[i] - (received_times[0] - 0.001 * i)) * 1000
-                if latency > 0:  # Only include positive latencies
-                    latencies.append(latency)
+            if i in receive_times and i in send_times:
+                latency_ms = (receive_times[i] - send_times[i]) * 1000
+                if latency_ms > 0 and latency_ms < 1000:  # Sanity check
+                    latencies.append(latency_ms)
         
         if latencies:
             avg_latency = statistics.mean(latencies)
             p95_latency = sorted(latencies)[int(0.95 * len(latencies))]
             
             print(f"\n📊 End-to-End Latency:")
-            print(f"   Messages received: {len(received_times)}/{iterations}")
+            print(f"   Messages received: {len(receive_times)}/{iterations}")
             print(f"   Average: {avg_latency:.3f}ms")
             print(f"   P95: {p95_latency:.3f}ms")
             
             # Relaxed target for CI environment
-            assert avg_latency < 10.0
+            assert avg_latency < LATENCY_MAX_E2E_MS, \
+                f"E2E latency {avg_latency:.3f}ms exceeds maximum {LATENCY_MAX_E2E_MS}ms"
 
 
 class TestQueuePerformance:
@@ -241,7 +260,8 @@ class TestQueuePerformance:
         
         queue_manager.stop()
         
-        assert throughput > 5000, f"Throughput {throughput:.0f} below target"
+        assert throughput > QUEUE_THROUGHPUT_MIN, \
+            f"Throughput {throughput:.0f} below target {QUEUE_THROUGHPUT_MIN}"
     
     @pytest.mark.slow
     def test_queue_dequeue_throughput(self):
@@ -278,7 +298,8 @@ class TestQueuePerformance:
         
         queue_manager.stop()
         
-        assert throughput > 5000, f"Throughput {throughput:.0f} below target"
+        assert throughput > QUEUE_THROUGHPUT_MIN, \
+            f"Throughput {throughput:.0f} below target {QUEUE_THROUGHPUT_MIN}"
     
     @pytest.mark.slow
     def test_priority_queue_performance(self):
@@ -365,7 +386,8 @@ class TestConcurrentPerformance:
         print(f"   Total throughput: {throughput:.0f} messages/second")
         print(f"   Per publisher: {throughput/publishers:.0f} messages/second")
         
-        assert throughput > 1000
+        assert throughput > CONCURRENT_THROUGHPUT_MIN, \
+            f"Throughput {throughput:.0f} below target {CONCURRENT_THROUGHPUT_MIN}"
     
     @pytest.mark.slow
     def test_concurrent_subscribers(self, message_bus):
@@ -398,7 +420,7 @@ class TestConcurrentPerformance:
             message_bus.publish("concurrent_sub_topic", {"sequence": i})
         
         # Wait for all deliveries
-        time.sleep(5.0)
+        time.sleep(5.0)  # Extended wait for concurrent processing
         
         duration = time.time() - start_time
         total_delivered = sum(received_counts)
@@ -443,7 +465,7 @@ class TestScalabilityBenchmarks:
                 message_bus.publish("scale_test", {"seq": i})
             
             # Wait for delivery
-            time.sleep(2.0)
+            time.sleep(DELIVERY_WAIT_TIME)
             
             duration = time.time() - start_time
             expected = message_count * sub_count
