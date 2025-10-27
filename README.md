@@ -22,6 +22,15 @@ When someone presses the doorbell:
    - 🟡 **Unknown Person**: Unrecognized visitor (photo alert sent)
    - 🔴 **Blacklisted Person**: Potential security threat (urgent alert)
 
+## Architecture
+
+This system follows a **modular monolith** architecture inspired by [Frigate NVR](https://frigate.video/). For detailed architectural decisions, see our [Architecture Decision Records (ADRs)](docs/adr/README.md):
+
+- [ADR-001: System Architecture](docs/adr/ADR-001-system-architecture.md) - Modular monolith design
+- [ADR-002: Face Recognition Implementation](docs/adr/ADR-002-face-recognition-implementation.md) - Two-stage detection/recognition pipeline  
+- [ADR-003: Generative AI Integration](docs/adr/ADR-003-generative-ai-integration.md) - Optional AI descriptions
+- [ADR-004: Testing Strategy](docs/adr/ADR-004-testing-strategy.md) - Layered testing approach
+
 ## Hardware Requirements
 
 ### 🥧 Production Deployment (Raspberry Pi)
