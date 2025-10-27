@@ -3,11 +3,11 @@
 Detector Factory - Strategy Pattern Implementation
 
 Factory for creating face detector instances with automatic hardware detection
-and fallback strategies.
+and fallback strategies. Enhanced with ensemble support and detector pooling.
 """
 
 import logging
-from typing import Dict, Any, Type, Optional
+from typing import Dict, Any, Type, Optional, List
 
 from src.detectors.base_detector import BaseDetector, DetectorType
 from src.detectors.cpu_detector import CPUDetector
@@ -211,6 +211,116 @@ class DetectorFactory:
         # Fallback to CPU if nothing else available
         logger.warning("No optimal detector found, defaulting to CPU")
         return 'cpu'
+    
+    @classmethod
+    def create_detector_ensemble(
+        cls,
+        detector_configs: List[Dict[str, Any]],
+        ensemble_strategy: str = "voting",
+        ensemble_config: Optional[Dict[str, Any]] = None
+    ) -> 'BaseDetector':
+        """
+        Create an ensemble of detectors with specified strategy.
+        
+        Args:
+            detector_configs: List of detector configurations, each with 'type' key
+            ensemble_strategy: Strategy for combining results ('voting', 'union', etc.)
+            ensemble_config: Additional ensemble configuration
+            
+        Returns:
+            EnsembleDetector instance
+            
+        Example:
+            >>> ensemble = DetectorFactory.create_detector_ensemble([
+            ...     {'type': 'cpu', 'model': 'hog'},
+            ...     {'type': 'cpu', 'model': 'cnn'}
+            ... ], strategy='voting')
+        """
+        from src.detectors.ensemble_detector import EnsembleDetector, EnsembleStrategy
+        
+        if not detector_configs:
+            raise ValueError("At least one detector configuration required")
+        
+        logger.info(f"Creating ensemble with {len(detector_configs)} detectors")
+        
+        # Create component detectors
+        detectors = []
+        for i, config in enumerate(detector_configs):
+            detector_type = config.get('type', 'cpu')
+            try:
+                detector = cls.create(detector_type, config)
+                detectors.append(detector)
+            except Exception as e:
+                logger.warning(f"Failed to create detector {i} (type={detector_type}): {e}")
+        
+        if not detectors:
+            raise ValueError("Failed to create any component detectors")
+        
+        # Parse strategy
+        try:
+            strategy = EnsembleStrategy(ensemble_strategy.lower())
+        except ValueError:
+            logger.warning(f"Unknown strategy '{ensemble_strategy}', using 'voting'")
+            strategy = EnsembleStrategy.VOTING
+        
+        # Create ensemble
+        ensemble = EnsembleDetector(
+            detectors=detectors,
+            strategy=strategy,
+            config=ensemble_config or {}
+        )
+        
+        logger.info(f"Created ensemble detector with {len(detectors)} components")
+        return ensemble
+    
+    @classmethod
+    def create_detector_pool(
+        cls,
+        detector_type: str,
+        pool_size: int,
+        config: Dict[str, Any]
+    ) -> List[BaseDetector]:
+        """
+        Create a pool of detector instances for parallel processing.
+        
+        Args:
+            detector_type: Type of detector to create
+            pool_size: Number of detector instances in pool
+            config: Base configuration for all detectors
+            
+        Returns:
+            List of detector instances
+            
+        Example:
+            >>> pool = DetectorFactory.create_detector_pool('cpu', 4, {'model': 'hog'})
+        """
+        if pool_size < 1:
+            raise ValueError(f"Pool size must be >= 1, got {pool_size}")
+        
+        logger.info(f"Creating detector pool: {detector_type} x {pool_size}")
+        
+        pool = []
+        for i in range(pool_size):
+            # Create a copy of config for each instance
+            instance_config = config.copy()
+            instance_config['instance_id'] = i
+            instance_config['pool_size'] = pool_size
+            
+            try:
+                detector = cls.create(detector_type, instance_config)
+                pool.append(detector)
+            except Exception as e:
+                logger.error(f"Failed to create detector {i} in pool: {e}")
+                # Clean up created detectors
+                for detector in pool:
+                    try:
+                        detector.cleanup()
+                    except:
+                        pass
+                raise
+        
+        logger.info(f"Created detector pool with {len(pool)} instances")
+        return pool
 
 
 def create_detector(detector_type: Optional[str] = None, 
