@@ -314,10 +314,6 @@ filterwarnings = [
     "ignore::PendingDeprecationWarning",
 ]
 
-[tool.pytest.ini_options.env]
-DEVELOPMENT_MODE = "true"
-PYTHONPATH = "."
-
 # Coverage configuration
 [tool.coverage.run]
 source = ["src", "config"]
