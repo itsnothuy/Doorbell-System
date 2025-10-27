@@ -19,6 +19,9 @@ from src.storage.face_database import FaceDatabase
 from src.storage.metrics_database import MetricsDatabase, SystemMetric, MetricType
 from src.storage.config_database import ConfigDatabase
 from src.storage.storage_manager import StorageManager, StorageConfig
+from src.storage.migration_manager import MigrationManager, Migration, MigrationResult
+from src.storage.backup_manager import BackupManager, BackupResult, RestoreResult
+from src.storage.query_builder import QueryBuilder, Operator, SortOrder
 
 __all__ = [
     # Base classes
@@ -42,4 +45,17 @@ __all__ = [
     # Storage manager
     'StorageManager',
     'StorageConfig',
+    
+    # Management components
+    'MigrationManager',
+    'Migration',
+    'MigrationResult',
+    'BackupManager',
+    'BackupResult',
+    'RestoreResult',
+    
+    # Query utilities
+    'QueryBuilder',
+    'Operator',
+    'SortOrder',
 ]
