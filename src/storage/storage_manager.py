@@ -195,17 +195,24 @@ class StorageManager:
             'databases': {}
         }
         
-        # Check event database
+        # Check event database (may not have health_check yet)
         if self.event_db:
-            event_health = self.event_db.health_check()
-            health['databases']['event_db'] = {
-                'healthy': event_health.is_healthy,
-                'status': event_health.status.name,
-                'size_bytes': event_health.database_size,
-                'metrics': event_health.metrics
-            }
-            if not event_health.is_healthy:
-                health['healthy'] = False
+            if hasattr(self.event_db, 'health_check'):
+                event_health = self.event_db.health_check()
+                health['databases']['event_db'] = {
+                    'healthy': event_health.is_healthy,
+                    'status': event_health.status.name,
+                    'size_bytes': event_health.database_size,
+                    'metrics': event_health.metrics
+                }
+                if not event_health.is_healthy:
+                    health['healthy'] = False
+            else:
+                # Basic check for event database
+                health['databases']['event_db'] = {
+                    'healthy': self.event_db.conn is not None,
+                    'initialized': True
+                }
         
         # Check face database
         if self.face_db:
@@ -256,13 +263,13 @@ class StorageManager:
         if not self._initialized:
             return metrics
         
-        # Aggregate metrics from all databases
+        # Aggregate metrics from all databases that have get_metrics
         for db_name, db in [
             ('event_db', self.event_db),
             ('metrics_db', self.metrics_db),
             ('config_db', self.config_db)
         ]:
-            if db:
+            if db and hasattr(db, 'get_metrics'):
                 db_metrics = db.get_metrics()
                 metrics.total_queries += db_metrics.get('queries_executed', 0)
                 metrics.total_inserts += db_metrics.get('inserts_executed', 0)
@@ -273,6 +280,11 @@ class StorageManager:
                 # Get database size
                 db_path = Path(db_metrics.get('database_path', ''))
                 if db_path.exists():
+                    metrics.database_sizes[db_name] = db_path.stat().st_size
+            elif db and hasattr(db, 'db_path'):
+                # For databases without get_metrics, just get size
+                db_path = Path(db.db_path) if hasattr(db, 'db_path') else None
+                if db_path and db_path.exists():
                     metrics.database_sizes[db_name] = db_path.stat().st_size
         
         # Get face database size separately
