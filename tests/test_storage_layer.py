@@ -7,6 +7,7 @@ storage manager, migration manager, and backup manager.
 """
 
 import json
+import shutil
 import tempfile
 import time
 from datetime import datetime, timedelta
@@ -255,11 +256,9 @@ class TestStorageManager:
     @pytest.fixture
     def temp_data_dir(self):
         """Create temporary data directory."""
-        import tempfile
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         # Cleanup
-        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
     
     @pytest.fixture
@@ -343,10 +342,8 @@ class TestMigrationManager:
     @pytest.fixture
     def temp_migrations_dir(self):
         """Create temporary migrations directory."""
-        import tempfile
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
-        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
     
     def test_initialization(self, temp_db_path, temp_migrations_dir):
@@ -392,10 +389,8 @@ class TestBackupManager:
     @pytest.fixture
     def temp_backup_dir(self):
         """Create temporary backup directory."""
-        import tempfile
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
-        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
     
     @pytest.fixture
@@ -453,20 +448,21 @@ class TestBackupManager:
         backup_result = manager.backup_database(temp_db_file)
         assert backup_result.success is True
         
-        # Restore to new location
-        import tempfile
-        restore_path = tempfile.mktemp(suffix='.db')
+        # Restore to new location - use NamedTemporaryFile safely
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+            restore_path = f.name
         
-        restore_result = manager.restore_database(
-            backup_result.backup_id,
-            restore_path
-        )
-        
-        assert restore_result.success is True
-        assert Path(restore_path).exists()
-        
-        # Cleanup
-        Path(restore_path).unlink(missing_ok=True)
+        try:
+            restore_result = manager.restore_database(
+                backup_result.backup_id,
+                restore_path
+            )
+            
+            assert restore_result.success is True
+            assert Path(restore_path).exists()
+        finally:
+            # Cleanup
+            Path(restore_path).unlink(missing_ok=True)
     
     def test_delete_backup(self, temp_backup_dir, temp_db_file):
         """Test backup deletion."""
