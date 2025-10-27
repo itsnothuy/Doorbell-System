@@ -1,5 +1,8 @@
 """
 GPIO handler for cross-platform hardware interface
+
+This module provides backward compatibility with the legacy GPIO handler
+interface while optionally using the new Hardware Abstraction Layer underneath.
 """
 
 import logging
@@ -7,6 +10,17 @@ import time
 import threading
 from typing import Callable, Optional
 from src.platform_detector import platform_detector
+
+# Import new HAL components
+try:
+    from src.hardware import get_hal
+    from src.hardware.base_hardware import GPIOMode, GPIOEdge
+    from config.hardware_config import HardwareConfig
+    HAL_AVAILABLE = True
+except ImportError:
+    HAL_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("Hardware Abstraction Layer not available, using legacy implementation")
 
 try:
     import RPi.GPIO as GPIO
@@ -18,7 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 class GPIOHandler:
-    """Handles GPIO operations for doorbell and LED indicators"""
+    """
+    Handles GPIO operations for doorbell and LED indicators
+    
+    This is a backward compatibility wrapper that can optionally use the new
+    Hardware Abstraction Layer if available.
+    """
     
     def __init__(self):
         from config.settings import Settings
@@ -32,6 +51,24 @@ class GPIOHandler:
         self.led_thread = None
         self.led_thread_running = False
         
+        # Try to use new HAL if available and on Raspberry Pi
+        self._hal_handler = None
+        self.use_real_gpio = False
+        
+        if HAL_AVAILABLE and platform_detector.is_raspberry_pi:
+            try:
+                # Create hardware config from legacy settings
+                hw_config = HardwareConfig.from_legacy_config(self.settings)
+                hal = get_hal(hw_config.to_dict())
+                self._hal_handler = hal.get_gpio_handler()
+                logger.info("GPIO Handler initialized with HAL")
+                self._setup_gpio_with_hal()
+                return
+            except Exception as e:
+                logger.warning(f"Failed to initialize HAL GPIO handler: {e}")
+                logger.info("Falling back to legacy GPIO handler")
+        
+        # Legacy GPIO setup
         # Check if we should use real GPIO or mock
         gpio_config = platform_detector.get_gpio_config()
         
@@ -43,6 +80,39 @@ class GPIOHandler:
                 logger.info("Using mock GPIO for macOS development")
             else:
                 logger.warning("RPi.GPIO not available - using mock GPIO")
+    
+    def _setup_gpio_with_hal(self):
+        """Setup GPIO using HAL handler"""
+        try:
+            if not self._hal_handler.initialize():
+                raise Exception("HAL GPIO initialization failed")
+            
+            # Setup pins using HAL
+            from src.hardware.base_hardware import GPIOMode
+            
+            # Setup doorbell pin
+            self._hal_handler.setup_pin(
+                self.settings.DOORBELL_PIN,
+                GPIOMode.INPUT,
+                pull_up_down='PUD_UP'
+            )
+            
+            # Setup LED pins
+            for color, pin in self.settings.STATUS_LED_PINS.items():
+                self._hal_handler.setup_pin(pin, GPIOMode.OUTPUT, initial=False)
+                self.led_states[color] = False
+            
+            self.initialized = True
+            self.use_real_gpio = True
+            logger.info("GPIO initialized successfully with HAL")
+            
+            # Start LED control thread
+            self._start_led_thread()
+            
+        except Exception as e:
+            logger.error(f"HAL GPIO setup failed: {e}")
+            self._hal_handler = None
+            raise
     
     def _setup_gpio(self):
         """Setup GPIO pins"""
@@ -102,6 +172,18 @@ class GPIOHandler:
         try:
             self.doorbell_callback = callback
             
+            # Use HAL handler if available
+            if self._hal_handler:
+                from src.hardware.base_hardware import GPIOEdge
+                self._hal_handler.setup_interrupt(
+                    self.settings.DOORBELL_PIN,
+                    self._doorbell_interrupt,
+                    GPIOEdge.FALLING
+                )
+                logger.info(f"HAL doorbell button configured on GPIO {self.settings.DOORBELL_PIN}")
+                return
+            
+            # Legacy GPIO
             if self.use_real_gpio:
                 # Add event detection for falling edge (button press)
                 GPIO.add_event_detect(
@@ -166,13 +248,21 @@ class GPIOHandler:
             
             pattern = led_patterns.get(status, led_patterns['off'])
             
-            # Set LEDs
-            for color, state in pattern.items():
-                if color in self.settings.STATUS_LED_PINS:
-                    if self.use_real_gpio:
+            # Set LEDs using HAL if available
+            if self._hal_handler:
+                for color, state in pattern.items():
+                    if color in self.settings.STATUS_LED_PINS:
                         pin = self.settings.STATUS_LED_PINS[color]
-                        GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
-                    self.led_states[color] = state
+                        self._hal_handler.write_pin(pin, state)
+                        self.led_states[color] = state
+            # Legacy GPIO
+            else:
+                for color, state in pattern.items():
+                    if color in self.settings.STATUS_LED_PINS:
+                        if self.use_real_gpio:
+                            pin = self.settings.STATUS_LED_PINS[color]
+                            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+                        self.led_states[color] = state
             
             logger.debug(f"Status LED set to: {status}")
             
@@ -318,6 +408,15 @@ class GPIOHandler:
             if self.led_thread and self.led_thread.is_alive():
                 self.led_thread.join(timeout=1)
             
+            # Use HAL cleanup if available
+            if self._hal_handler:
+                self._hal_handler.cleanup()
+                self._hal_handler = None
+                self.initialized = False
+                logger.info("HAL GPIO cleanup completed")
+                return
+            
+            # Legacy cleanup
             if self.use_real_gpio and GPIO_AVAILABLE and self.initialized:
                 # Remove event detection
                 if hasattr(GPIO, 'remove_event_detect'):

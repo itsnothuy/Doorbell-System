@@ -1,5 +1,8 @@
 """
 Camera operations module for cross-platform support
+
+This module provides backward compatibility with the legacy camera handler
+interface while using the new Hardware Abstraction Layer underneath.
 """
 
 import logging
@@ -9,6 +12,15 @@ from PIL import Image
 from pathlib import Path
 from typing import Optional
 from src.platform_detector import platform_detector
+
+# Import new HAL components
+try:
+    from src.hardware import get_hal
+    from config.hardware_config import HardwareConfig
+    HAL_AVAILABLE = True
+except ImportError:
+    HAL_AVAILABLE = False
+    logger.warning("Hardware Abstraction Layer not available, using legacy implementation")
 
 try:
     from picamera2 import Picamera2
@@ -26,7 +38,12 @@ logger = logging.getLogger(__name__)
 
 
 class CameraHandler:
-    """Handles camera operations with fallback support"""
+    """
+    Handles camera operations with fallback support
+    
+    This is a backward compatibility wrapper that uses the new Hardware
+    Abstraction Layer if available, otherwise falls back to legacy implementation.
+    """
     
     def __init__(self):
         from config.settings import Settings
@@ -36,12 +53,43 @@ class CameraHandler:
         self.camera_type = None
         self.is_initialized = False
         
-        logger.info("Camera Handler initialized")
+        # Try to use new HAL if available
+        self._hal_handler = None
+        if HAL_AVAILABLE:
+            try:
+                # Create hardware config from legacy settings
+                hw_config = HardwareConfig.from_legacy_config(self.settings)
+                hal = get_hal(hw_config.to_dict())
+                self._hal_handler = hal.get_camera_handler()
+                logger.info("Camera Handler initialized with HAL")
+            except Exception as e:
+                logger.warning(f"Failed to initialize HAL camera handler: {e}")
+                logger.info("Falling back to legacy camera handler")
+        else:
+            logger.info("Camera Handler initialized (legacy mode)")
     
     def initialize(self):
         """Initialize camera with platform-appropriate method"""
         print("DEBUG: Starting CameraHandler.initialize() method.") # Aggressive debug print
         logger.debug("Starting CameraHandler.initialize() method.")
+        
+        # If HAL handler is available, use it
+        if self._hal_handler:
+            try:
+                success = self._hal_handler.initialize()
+                if success:
+                    self.is_initialized = True
+                    self.camera_type = 'hal'
+                    self.camera = self._hal_handler
+                    print("DEBUG: Camera initialized with Hardware Abstraction Layer")
+                    logger.info("Camera initialized with Hardware Abstraction Layer")
+                    return
+                else:
+                    logger.warning("HAL camera initialization failed, falling back to legacy")
+            except Exception as e:
+                logger.error(f"HAL camera initialization error: {e}, falling back to legacy")
+        
+        # Legacy initialization
         try:
             camera_config = platform_detector.get_camera_config()
             print(f"DEBUG: Camera config from platform_detector: {camera_config}") # Aggressive debug print
@@ -210,6 +258,15 @@ class CameraHandler:
             logger.error("Camera not initialized")
             return None
         
+        # Use HAL handler if available
+        if self.camera_type == 'hal' and self._hal_handler:
+            try:
+                return self._hal_handler.capture_frame()
+            except Exception as e:
+                logger.error(f"HAL camera capture failed: {e}")
+                return None
+        
+        # Legacy capture
         try:
             if self.camera_type == 'picamera2':
                 return self._capture_picamera2()
@@ -282,6 +339,22 @@ class CameraHandler:
     
     def get_camera_info(self) -> dict:
         """Get camera information"""
+        # Use HAL handler if available
+        if self.camera_type == 'hal' and self._hal_handler:
+            try:
+                camera_info = self._hal_handler.get_camera_info()
+                return {
+                    'initialized': self.is_initialized,
+                    'camera_type': 'hal',
+                    'backend': camera_info.backend,
+                    'resolution': camera_info.resolution,
+                    'fps': camera_info.fps,
+                    'rotation': self.settings.CAMERA_ROTATION
+                }
+            except Exception as e:
+                logger.error(f"HAL camera info failed: {e}")
+        
+        # Legacy camera info
         info = {
             'initialized': self.is_initialized,
             'camera_type': self.camera_type,
@@ -304,6 +377,16 @@ class CameraHandler:
     def cleanup(self):
         """Cleanup camera resources"""
         try:
+            # Use HAL handler if available
+            if self.camera_type == 'hal' and self._hal_handler:
+                self._hal_handler.cleanup()
+                self._hal_handler = None
+                self.camera = None
+                self.is_initialized = False
+                logger.info("HAL camera cleanup completed")
+                return
+            
+            # Legacy cleanup
             if self.camera:
                 if self.camera_type == 'picamera2':
                     self.camera.stop()
