@@ -11,43 +11,10 @@ from typing import Dict, Any, Type, Optional, List
 
 from src.detectors.base_detector import BaseDetector, DetectorType
 from src.detectors.cpu_detector import CPUDetector
+from src.detectors.gpu_detector import GPUDetector
+from src.detectors.edgetpu_detector import EdgeTPUDetector
 
 logger = logging.getLogger(__name__)
-
-
-# Mock detectors for GPU and EdgeTPU (not yet implemented)
-class GPUDetector(BaseDetector):
-    """Placeholder GPU detector (to be implemented in future PR)."""
-    
-    @classmethod
-    def is_available(cls) -> bool:
-        return False
-    
-    def _get_detector_type(self) -> DetectorType:
-        return DetectorType.GPU
-    
-    def _initialize_model(self) -> None:
-        raise NotImplementedError("GPU detector not yet implemented")
-    
-    def _run_inference(self, image):
-        raise NotImplementedError("GPU detector not yet implemented")
-
-
-class EdgeTPUDetector(BaseDetector):
-    """Placeholder EdgeTPU detector (to be implemented in future PR)."""
-    
-    @classmethod
-    def is_available(cls) -> bool:
-        return False
-    
-    def _get_detector_type(self) -> DetectorType:
-        return DetectorType.EDGETPU
-    
-    def _initialize_model(self) -> None:
-        raise NotImplementedError("EdgeTPU detector not yet implemented")
-    
-    def _run_inference(self, image):
-        raise NotImplementedError("EdgeTPU detector not yet implemented")
 
 
 class MockDetector(BaseDetector):
