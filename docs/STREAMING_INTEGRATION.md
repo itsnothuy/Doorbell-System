@@ -431,7 +431,7 @@ pytest tests/streaming/test_streaming_integration.py -v
 **Problem:** Socket.IO not connecting
 - **Check:** Socket.IO client is loaded
 - **Verify:** WebSocket transport is enabled
-- **Solution:** Fall back to polling if WebSocket blocked
+- **Solution:** Fall back to polling if WebSocket is blocked
 
 ### Video Stream Issues
 

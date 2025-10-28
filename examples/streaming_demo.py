@@ -21,8 +21,13 @@ logger = logging.getLogger(__name__)
 
 def demo_sse_streaming():
     """Demonstrate SSE streaming functionality."""
-    from src.enrichment.web_events import WebEventStreamer
-    from src.streaming.sse_handler import SSEHandler
+    try:
+        from src.enrichment.web_events import WebEventStreamer
+        from src.streaming.sse_handler import SSEHandler
+    except ImportError as e:
+        logger.error(f"Failed to import required modules: {e}")
+        logger.error("Make sure you're running from the project root directory")
+        return
     
     logger.info("=== SSE Streaming Demo ===")
     
@@ -68,8 +73,12 @@ def demo_sse_streaming():
 
 def demo_websocket_handler():
     """Demonstrate WebSocket handler functionality."""
-    from unittest.mock import Mock
-    from src.streaming.websocket_handler import WebSocketHandler
+    try:
+        from unittest.mock import Mock
+        from src.streaming.websocket_handler import WebSocketHandler
+    except ImportError as e:
+        logger.error(f"Failed to import required modules: {e}")
+        return
     
     logger.info("=== WebSocket Handler Demo ===")
     
@@ -106,9 +115,13 @@ def demo_websocket_handler():
 
 def demo_video_streaming():
     """Demonstrate video streaming configuration."""
-    from src.streaming.video_streamer import VideoStreamer
-    from unittest.mock import Mock
-    import numpy as np
+    try:
+        from src.streaming.video_streamer import VideoStreamer
+        from unittest.mock import Mock
+        import numpy as np
+    except ImportError as e:
+        logger.error(f"Failed to import required modules: {e}")
+        return
     
     logger.info("=== Video Streaming Demo ===")
     
@@ -133,8 +146,12 @@ def demo_video_streaming():
 
 def demo_complete_integration():
     """Demonstrate complete streaming integration."""
-    from src.enrichment.web_events import WebEventStreamer, WebEventsEnrichment
-    from src.communication.events import PipelineEvent, EventType
+    try:
+        from src.enrichment.web_events import WebEventStreamer, WebEventsEnrichment
+        from src.communication.events import PipelineEvent, EventType
+    except ImportError as e:
+        logger.error(f"Failed to import required modules: {e}")
+        return
     
     logger.info("=== Complete Integration Demo ===")
     
