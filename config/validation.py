@@ -5,6 +5,7 @@ Advanced Configuration Validation System
 Comprehensive validation with schema support and dependency checking.
 """
 
+import os
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
@@ -175,7 +176,11 @@ class ConfigValidator:
             },
             'telegram_requires_credentials': {
                 'condition': lambda cfg: cfg.get('notifications', {}).get('telegram_enabled', False),
-                'requirement': lambda cfg: bool(cfg.get('notifications', {}).get('telegram_bot_token')),
+                'requirement': lambda cfg: (
+                    not cfg.get('notifications', {}).get('telegram_enabled', False) or
+                    bool(os.getenv('TELEGRAM_BOT_TOKEN')) or
+                    bool(cfg.get('notifications', {}).get('telegram_bot_token'))
+                ),
                 'error_message': 'Telegram notifications require bot token',
                 'suggestion': 'Configure TELEGRAM_BOT_TOKEN environment variable or disable telegram'
             }
@@ -196,10 +201,13 @@ class ConfigValidator:
             return errors
         
         try:
+            # Convert tuples to lists for schema validation
+            config_copy = self._convert_tuples_to_lists(config)
+            
             # Load main schema
             main_schema = self.schemas.get('main_config')
             if main_schema:
-                jsonschema.validate(config, main_schema)
+                jsonschema.validate(config_copy, main_schema)
         except jsonschema.ValidationError as e:
             errors.append(ValidationError(
                 path='.'.join(str(p) for p in e.absolute_path),
@@ -211,6 +219,24 @@ class ConfigValidator:
             logger.warning(f"Schema validation error: {e}")
         
         return errors
+    
+    def _convert_tuples_to_lists(self, obj: Any) -> Any:
+        """Convert tuples to lists for JSON schema validation.
+        
+        Args:
+            obj: Object to convert
+            
+        Returns:
+            Any: Converted object
+        """
+        if isinstance(obj, dict):
+            return {k: self._convert_tuples_to_lists(v) for k, v in obj.items()}
+        elif isinstance(obj, tuple):
+            return list(obj)
+        elif isinstance(obj, list):
+            return [self._convert_tuples_to_lists(item) for item in obj]
+        else:
+            return obj
     
     def _get_schema_suggestion(self, error: Any) -> Optional[str]:
         """Get suggestion for schema validation error.
@@ -252,12 +278,21 @@ class ConfigValidator:
             try:
                 if rule['condition'](config):
                     if not rule['requirement'](config):
-                        errors.append(ValidationError(
-                            path=rule_name,
-                            message=rule['error_message'],
-                            severity='error',
-                            suggestion=rule.get('suggestion')
-                        ))
+                        # For telegram, make it a warning instead of error in non-production
+                        if rule_name == 'telegram_requires_credentials':
+                            warnings.append(ValidationError(
+                                path=rule_name,
+                                message=rule['error_message'],
+                                severity='warning',
+                                suggestion=rule.get('suggestion')
+                            ))
+                        else:
+                            errors.append(ValidationError(
+                                path=rule_name,
+                                message=rule['error_message'],
+                                severity='error',
+                                suggestion=rule.get('suggestion')
+                            ))
             except Exception as e:
                 logger.warning(f"Error checking dependency rule {rule_name}: {e}")
         
