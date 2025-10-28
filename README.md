@@ -206,6 +206,22 @@ When running on macOS or in development mode, the system includes a beautiful we
 
 ## Architecture
 
+### 🎯 Pipeline Architecture (Frigate-Inspired)
+
+The system uses a modern **pipeline orchestrator** architecture inspired by [Frigate NVR](https://frigate.video/):
+
+```
+GPIO Event → Frame Capture → Face Detection → Face Recognition → Event Processing → Notifications
+```
+
+**Key Features:**
+- **Multi-Process Pipeline**: Parallel processing with worker pools
+- **Event-Driven**: High-performance message bus for inter-component communication
+- **Pluggable Detectors**: CPU, GPU, or EdgeTPU face detection backends
+- **Auto-Recovery**: Self-healing with health monitoring and automatic restart
+- **Legacy Compatible**: Backward compatible with existing code via adapter layer
+
+**Architecture Highlights:**
 - **Cross-Platform**: Runs on Raspberry Pi, macOS, Linux, Windows
 - **Edge Processing**: All face recognition runs locally (Raspberry Pi mode)
 - **Web Interface**: Modern dashboard for testing and monitoring
@@ -213,21 +229,43 @@ When running on macOS or in development mode, the system includes a beautiful we
 - **Privacy First**: No face data sent to cloud services
 - **Fail-Safe**: System defaults to unknown alerts rather than false recognition
 
+See [Pipeline Integration Guide](docs/PIPELINE_INTEGRATION.md) for detailed architecture documentation.
+
 ## Project Structure
 
 ```
 Doorbell-System/
 ├── 📁 src/                     # Source code
-│   ├── 🎯 doorbell_security.py    # Main application
-│   ├── 👤 face_manager.py         # Face database management
-│   ├── 📷 camera_handler.py       # Camera operations  
+│   ├── 🎯 main.py                 # Pipeline entry point (NEW)
+│   ├── 🏗️ integration/            # Integration layer (NEW)
+│   │   ├── orchestrator_manager.py  # High-level orchestrator control
+│   │   ├── legacy_adapter.py        # Backward compatibility layer
+│   │   └── migration_utils.py       # Migration utilities
+│   ├── 🔄 pipeline/               # Pipeline components (NEW)
+│   │   ├── orchestrator.py          # Pipeline orchestrator
+│   │   ├── frame_capture.py         # Frame capture worker
+│   │   ├── face_detector.py         # Face detection worker
+│   │   ├── face_recognizer.py       # Face recognition worker
+│   │   └── event_processor.py       # Event processing
+│   ├── 💬 communication/          # Message bus & events (NEW)
+│   │   ├── message_bus.py           # High-performance IPC
+│   │   ├── events.py                # Event definitions
+│   │   └── queues.py                # Queue management
+│   ├── 🔌 hardware/               # Hardware abstraction
+│   │   ├── camera_handler.py        # Camera operations
+│   │   └── gpio_handler.py          # GPIO interface
+│   ├── 💾 storage/                # Data persistence
+│   │   ├── event_database.py        # Event storage
+│   │   └── face_database.py         # Face encoding storage
+│   ├── 👤 face_manager.py         # Face database management (legacy)
 │   ├── 📱 telegram_notifier.py    # Notification system
-│   ├── 🔌 gpio_handler.py         # Hardware interface
-│   ├── 🔍 platform_detector.py   # Cross-platform detection
-│   └── 🌐 web_interface.py       # Web dashboard
+│   ├── 🔍 platform_detector.py    # Cross-platform detection
+│   └── 🌐 web_interface.py        # Web dashboard
 ├── 📁 config/                  # Configuration files
-│   ├── ⚙️ settings.py             # System settings
-│   └── 🔑 credentials_template.py # Telegram credentials template
+│   ├── ⚙️ orchestrator_config.py  # Orchestrator configuration (NEW)
+│   ├── ⚙️ pipeline_config.py      # Pipeline configuration
+│   ├── ⚙️ settings.py              # System settings
+│   └── 🔑 credentials_template.py  # Telegram credentials template
 ├── 📁 data/                    # Face databases and logs
 │   ├── 👥 known_faces/            # Authorized persons
 │   ├── 🚫 blacklist_faces/        # Suspicious persons
@@ -237,11 +275,18 @@ Doorbell-System/
 │   └── 🎨 dashboard.html          # Main dashboard
 ├── 📁 scripts/                 # Utility scripts
 ├── 📁 tests/                   # Test suite
+│   ├── 🧪 integration/            # Integration tests (NEW)
+│   │   ├── test_orchestrator_integration.py
+│   │   ├── test_legacy_compatibility.py
+│   │   └── test_end_to_end_pipeline.py
 │   └── 🧪 test_system.py         # Unit tests
 ├── 📁 docs/                    # Documentation
+│   ├── 📘 PIPELINE_INTEGRATION.md # Pipeline integration guide (NEW)
+│   ├── 📘 ARCHITECTURE.md         # Architecture documentation
+│   └── ... (other docs)
 ├── 🛠️ setup.sh                   # Raspberry Pi setup
 ├── 🍎 setup-macos.sh             # macOS setup
-├── 🌐 app.py                     # Cloud deployment entry
+├── 🌐 app.py                     # Cloud deployment entry (updated for pipeline)
 ├── 🐳 Dockerfile                 # Docker configuration
 ├── ☁️ vercel.json               # Vercel deployment
 ├── 🚄 railway.toml              # Railway deployment
@@ -250,11 +295,12 @@ Doorbell-System/
 
 ## Documentation
 
+- [Pipeline Integration Guide](docs/PIPELINE_INTEGRATION.md) ⭐ **NEW**
+- [Architecture Documentation](docs/ARCHITECTURE.md)
 - [Installation Guide](docs/installation.md)
-- [Configuration Guide](docs/configuration.md)
-- [Hardware Setup](docs/hardware_setup.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [API Reference](docs/api_reference.md)
+- [Configuration Management](docs/CONFIGURATION_MANAGEMENT.md)
+- [Testing Guide](docs/TESTING.md)
+- [Security Guidelines](docs/SECURITY.md)
 
 ## Contributing
 

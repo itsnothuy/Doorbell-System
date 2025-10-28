@@ -2,6 +2,8 @@
 """
 Cloud deployment entry point for Doorbell Security System
 This file serves as the main entry point for cloud platforms like Vercel, Render, etc.
+
+Updated to use the new pipeline orchestrator architecture.
 """
 
 import os
@@ -18,7 +20,7 @@ os.environ['DEVELOPMENT_MODE'] = 'true'
 os.environ['PORT'] = os.environ.get('PORT', '8000')
 
 from src.web_interface import create_web_app
-from src.doorbell_security import DoorbellSecuritySystem
+from src.integration.orchestrator_manager import OrchestratorManager
 from config.logging_config import setup_logging # Import centralized logging
 
 # Setup logging early for app.py and define logger immediately
@@ -28,17 +30,21 @@ logger = logging.getLogger(__name__) # Define logger at module level after setup
 # Global variable to store initialization error message
 system_init_error_message = None # Initialize as None
 
-# Initialize the doorbell system
+# Initialize the doorbell system with new pipeline architecture
 try:
-    logger.info("Initializing Doorbell Security System for cloud deployment...")
+    logger.info("Initializing Doorbell Security System with Pipeline Architecture...")
     
-    doorbell_system = DoorbellSecuritySystem()
-    doorbell_system.start() # Explicitly start the system
+    # Create orchestrator manager
+    orchestrator_manager = OrchestratorManager()
+    orchestrator_manager.start() # Start the pipeline
+    
+    # Get legacy adapter for web interface compatibility
+    doorbell_system = orchestrator_manager.get_legacy_interface()
     
     # Create Flask app
     app = create_web_app(doorbell_system)
     
-    logger.info("✅ Cloud deployment ready")
+    logger.info("✅ Cloud deployment ready (Pipeline Architecture)")
     
 except Exception as init_exception:
     system_init_error_message = str(init_exception)
