@@ -10,6 +10,12 @@ This directory contains Architecture Decision Records (ADRs) for the Doorbell Se
 | [ADR-002](./ADR-002-face-recognition-implementation.md) | Face Recognition Implementation | Accepted | 2025-10-23 |
 | [ADR-003](./ADR-003-generative-ai-integration.md) | Generative AI Integration | Accepted | 2025-10-23 |
 | [ADR-004](./ADR-004-testing-strategy.md) | Testing Strategy | Accepted | 2025-10-23 |
+| [ADR-005](./ADR-005-pipeline-architecture-orchestration.md) | Pipeline Architecture and Orchestration | Accepted | 2025-10-28 |
+| [ADR-006](./ADR-006-communication-infrastructure-message-bus.md) | Communication Infrastructure and Message Bus | Accepted | 2025-10-28 |
+| [ADR-007](./ADR-007-detector-strategy-hardware-abstraction.md) | Detector Strategy Pattern and Hardware Abstraction | Accepted | 2025-10-28 |
+| [ADR-008](./ADR-008-production-deployment-infrastructure.md) | Production Deployment and Infrastructure | Accepted | 2025-10-28 |
+| [ADR-009](./ADR-009-security-architecture-compliance.md) | Security Architecture and Compliance | Accepted | 2025-10-28 |
+| [ADR-010](./ADR-010-storage-data-management.md) | Storage and Data Management | Accepted | 2025-10-28 |
 
 ## ADR Template
 
