@@ -394,6 +394,14 @@
         </div>
     </div>
 
+    <!-- Socket.IO Client (optional, for WebSocket support) -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Streaming Client Scripts -->
+    <script src="/static/js/event-stream.js"></script>
+    <script src="/static/js/websocket-client.js"></script>
+    <script src="/static/js/video-stream.js"></script>
+
     <script>
         let updateInterval;
 
@@ -840,6 +848,128 @@
                  grid.appendChild(card);
              });
          }
+
+        // Real-time Streaming Integration
+        let eventStreamClient = null;
+        let webSocketClient = null;
+        let videoStreamClient = null;
+
+        function initializeStreaming() {
+            console.log('Initializing real-time streaming...');
+            
+            // Initialize SSE Event Stream
+            try {
+                eventStreamClient = new EventStreamClient();
+                
+                eventStreamClient.on('connected', (data) => {
+                    console.log('Event stream connected:', data);
+                    updateStreamingStatus('sse', true);
+                });
+                
+                eventStreamClient.on('event', (data) => {
+                    console.log('Real-time event received:', data);
+                    handleRealtimeEvent(data);
+                });
+                
+                eventStreamClient.on('status', (data) => {
+                    console.log('System status update:', data);
+                    updateSystemStatus(data);
+                });
+                
+                eventStreamClient.on('error', (data) => {
+                    console.error('Event stream error:', data);
+                    updateStreamingStatus('sse', false);
+                });
+                
+                eventStreamClient.connect();
+            } catch (error) {
+                console.error('Failed to initialize event stream:', error);
+            }
+            
+            // Initialize WebSocket (optional - requires Socket.IO client)
+            if (typeof io !== 'undefined') {
+                try {
+                    webSocketClient = new WebSocketClient();
+                    
+                    webSocketClient.on('connect', () => {
+                        console.log('WebSocket connected');
+                        updateStreamingStatus('ws', true);
+                    });
+                    
+                    webSocketClient.on('disconnect', () => {
+                        console.log('WebSocket disconnected');
+                        updateStreamingStatus('ws', false);
+                    });
+                    
+                    webSocketClient.on('live_event', (data) => {
+                        console.log('WebSocket event:', data);
+                        handleRealtimeEvent(data);
+                    });
+                    
+                    webSocketClient.connect();
+                } catch (error) {
+                    console.error('Failed to initialize WebSocket:', error);
+                }
+            }
+        }
+
+        function handleRealtimeEvent(eventData) {
+            // Handle real-time events and update UI
+            console.log('Handling real-time event:', eventData);
+            
+            // Refresh events list
+            refreshEvents();
+            
+            // Show notification if significant event
+            if (eventData.event_type && eventData.event_type.includes('FACE_RECOGNIZED')) {
+                showNotification('Face Detected', 'A face was detected at your door');
+            } else if (eventData.event_type && eventData.event_type.includes('DOORBELL')) {
+                showNotification('Doorbell Pressed', 'Someone rang the doorbell');
+            }
+        }
+
+        function updateSystemStatus(statusData) {
+            // Update system status indicators
+            if (statusData.streaming_status === 'running') {
+                const statusEl = document.querySelector('.status-indicator');
+                if (statusEl) {
+                    statusEl.className = 'status-indicator status-online';
+                }
+            }
+        }
+
+        function updateStreamingStatus(type, connected) {
+            // Update streaming connection indicators
+            console.log(`Streaming ${type} status:`, connected ? 'connected' : 'disconnected');
+        }
+
+        function showNotification(title, message) {
+            // Show browser notification if permitted
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: message });
+            }
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Initialize streaming on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Give the page time to load first
+            setTimeout(initializeStreaming, 1000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (eventStreamClient) {
+                eventStreamClient.disconnect();
+            }
+            if (webSocketClient) {
+                webSocketClient.disconnect();
+            }
+        });
     </script>
 </body>
 </html>

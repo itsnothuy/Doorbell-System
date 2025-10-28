@@ -6,11 +6,13 @@ import os
 import logging
 import base64
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response
 from flask_cors import CORS
+from flask_socketio import SocketIO
 import json
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -31,9 +33,42 @@ class WebInterface:
         self.doorbell_system = doorbell_system
         self.settings = doorbell_system.settings
         
+        # Initialize SocketIO for WebSocket support
+        self.socketio = SocketIO(self.app, cors_allowed_origins="*")
+        
+        # Initialize streaming components if doorbell_system is available
+        self.sse_handler = None
+        self.websocket_handler = None
+        self.video_streamer = None
+        
+        if doorbell_system:
+            self._init_streaming_components()
+        
         self._init_routes()
         
         logger.info("Web interface initialized")
+    
+    def _init_streaming_components(self):
+        """Initialize streaming handlers."""
+        try:
+            from src.streaming.sse_handler import SSEHandler
+            from src.streaming.websocket_handler import WebSocketHandler
+            from src.streaming.video_streamer import VideoStreamer
+            
+            # Check if web_event_streamer exists
+            if hasattr(self.doorbell_system, 'web_event_streamer'):
+                self.sse_handler = SSEHandler(self.doorbell_system.web_event_streamer)
+            
+            # Initialize WebSocket handler
+            self.websocket_handler = WebSocketHandler(self.socketio)
+            
+            # Initialize video streamer if camera is available
+            if hasattr(self.doorbell_system, 'camera'):
+                self.video_streamer = VideoStreamer(self.doorbell_system.camera)
+            
+            logger.info("Streaming components initialized")
+        except Exception as e:
+            logger.warning(f"Streaming components not fully initialized: {e}")
     
     def _init_routes(self):
         """Initialize Flask routes"""
@@ -614,12 +649,66 @@ class WebInterface:
             except Exception as e:
                 logger.error(f"Error serving known face image {filename}: {e}", exc_info=True)
                 return jsonify({'status': 'error', 'message': 'File not found'}), 404
+        
+        # SSE Endpoints
+        @self.app.route('/stream/events')
+        def stream_events():
+            """Server-Sent Events stream for real-time events."""
+            if not self.sse_handler:
+                return jsonify({'error': 'SSE not available'}), 503
+            
+            client_id = request.args.get('client_id', str(uuid.uuid4()))
+            
+            return Response(
+                self.sse_handler.create_event_stream(client_id),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            )
+        
+        @self.app.route('/stream/system-status')
+        def stream_system_status():
+            """SSE stream for system status updates."""
+            if not self.sse_handler:
+                return jsonify({'error': 'SSE not available'}), 503
+            
+            client_id = request.args.get('client_id', str(uuid.uuid4()))
+            
+            return Response(
+                self.sse_handler.create_system_status_stream(client_id),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive'
+                }
+            )
+        
+        # Video Streaming
+        @self.app.route('/stream/video/<client_id>')
+        def stream_video(client_id):
+            """Live video stream endpoint."""
+            if not self.video_streamer:
+                return jsonify({'error': 'Video streaming not available'}), 503
+            
+            quality = request.args.get('quality', 'medium')
+            
+            return Response(
+                self.video_streamer.create_video_stream(client_id, quality),
+                mimetype='multipart/x-mixed-replace; boundary=frame'
+            )
 
     def run(self, host='127.0.0.1', port=5000, debug=True):
-        """Run the Flask web server"""
+        """Run the Flask web server with SocketIO"""
         try:
             logger.info(f"Starting web interface on http://{host}:{port}")
-            self.app.run(host=host, port=port, debug=debug, threaded=True)
+            # Use socketio.run instead of app.run when SocketIO is available
+            if self.socketio:
+                self.socketio.run(self.app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
+            else:
+                self.app.run(host=host, port=port, debug=debug, threaded=True)
         except Exception as e:
             logger.error(f"Failed to start web interface: {e}")
             raise
