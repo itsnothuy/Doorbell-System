@@ -18,6 +18,8 @@ colorlog==6.7.0
 # Web interface (for development/testing)
 Flask==2.3.3
 Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+python-socketio==5.10.0
 gunicorn==21.2.0
 
 # Optional: Performance monitoring
