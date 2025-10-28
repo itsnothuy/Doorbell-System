@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pipeline Configuration Schema",
+  "description": "Schema for validating Doorbell Security System pipeline configuration",
+  "type": "object",
+  "properties": {
+    "frame_capture": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "fps": {"type": "integer", "minimum": 1, "maximum": 60},
+        "resolution": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "ring_buffer_size": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "quality": {"type": "integer", "minimum": 1, "maximum": 100}
+      }
+    },
+    "motion_detection": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "sensitivity": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "min_area": {"type": "integer", "minimum": 1},
+        "max_area": {"type": "integer", "minimum": 1}
+      }
+    },
+    "face_detection": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "worker_count": {"type": "integer", "minimum": 1, "maximum": 32},
+        "detector_type": {
+          "type": "string",
+          "enum": ["cpu", "gpu", "edgetpu", "mock"]
+        },
+        "model": {
+          "type": "string",
+          "enum": ["hog", "cnn"]
+        },
+        "max_queue_size": {"type": "integer", "minimum": 1},
+        "timeout": {"type": "number", "minimum": 1.0}
+      },
+      "required": ["enabled", "detector_type"]
+    },
+    "face_recognition": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "worker_count": {"type": "integer", "minimum": 1, "maximum": 32},
+        "tolerance": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "blacklist_tolerance": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "timeout": {"type": "number", "minimum": 1.0}
+      },
+      "required": ["enabled"]
+    },
+    "event_processing": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "max_queue_size": {"type": "integer", "minimum": 1}
+      }
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "database_path": {"type": "string"},
+        "backup_enabled": {"type": "boolean"},
+        "log_level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "telegram_enabled": {"type": "boolean"},
+        "debounce_period": {"type": "number", "minimum": 0.0}
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "properties": {
+        "doorbell_pin": {"type": "integer", "minimum": 1, "maximum": 40},
+        "camera_type": {
+          "type": "string",
+          "enum": ["auto", "picamera", "opencv", "mock"]
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "health_check_interval": {"type": "number", "minimum": 1.0},
+        "cpu_threshold": {"type": "number", "minimum": 0.0, "maximum": 100.0},
+        "memory_threshold": {"type": "number", "minimum": 0.0, "maximum": 100.0}
+      }
+    }
+  }
+}

@@ -65,6 +65,12 @@ class EventType(Enum):
     # Health and monitoring
     HEALTH_CHECK = auto()
     PERFORMANCE_METRIC = auto()
+    
+    # Configuration events
+    CONFIGURATION_LOADED = auto()
+    CONFIGURATION_RELOADED = auto()
+    CONFIGURATION_VALIDATION_FAILED = auto()
+    CONFIGURATION_CHANGED = auto()
 
 
 class EventPriority(Enum):
