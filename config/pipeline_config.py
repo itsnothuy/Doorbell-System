@@ -326,10 +326,8 @@ class PipelineConfig:
     
     def _apply_platform_optimizations(self) -> None:
         """Apply platform-specific optimizations."""
-        platform_info = platform_detector.get_platform_info()
-        
         # Raspberry Pi optimizations
-        if platform_info.get('is_raspberry_pi', False):
+        if platform_detector.is_raspberry_pi:
             # Reduce worker counts for limited CPU
             self.face_detection.worker_count = 1
             self.face_recognition.worker_count = 1
@@ -346,7 +344,7 @@ class PipelineConfig:
             self.motion_detection.enabled = True
         
         # macOS/Development optimizations
-        elif platform_info.get('platform') == 'darwin':
+        elif platform_detector.is_macos:
             # Use more workers for development
             self.face_detection.worker_count = 4
             self.face_recognition.worker_count = 3
@@ -359,7 +357,7 @@ class PipelineConfig:
             self.event_processing.enable_web_events = True
         
         # Docker optimizations
-        if platform_info.get('in_docker', False):
+        if os.getenv('DOCKER_CONTAINER') or os.getenv('KUBERNETES_SERVICE_HOST'):
             # Adjust paths for container
             self.storage.database_path = "/app/data/events.db"
             self.storage.capture_path = "/app/data/captures"
