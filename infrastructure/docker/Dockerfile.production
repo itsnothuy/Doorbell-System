@@ -1,0 +1,71 @@
+# Production Dockerfile
+# Optimized multi-stage build for production deployment
+
+# Stage 1: Base image with system dependencies
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    libopencv-dev \
+    libboost-all-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Stage 2: Dependencies
+FROM base as dependencies
+
+WORKDIR /tmp
+
+# Copy requirements
+COPY requirements.txt .
+COPY requirements-web.txt .
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install -r requirements-web.txt && \
+    pip install psutil prometheus-client gunicorn
+
+# Stage 3: Production image
+FROM base as production
+
+# Create application user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Create necessary directories
+RUN mkdir -p data/logs data/known_faces data/blacklist_faces data/captures data/backups && \
+    chown -R appuser:appuser data
+
+# Health check script
+COPY infrastructure/docker/health_check.sh /health_check.sh
+RUN chmod +x /health_check.sh
+
+# Switch to application user
+USER appuser
+
+# Expose ports
+EXPOSE 5000 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD /health_check.sh
+
+# Default command - run with gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

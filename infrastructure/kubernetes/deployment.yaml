@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doorbell-system
+  labels:
+    app: doorbell-system
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: doorbell-system
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: doorbell-system
+        version: v1
+    spec:
+      containers:
+      - name: doorbell-system
+        image: doorbell-system:production
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        - containerPort: 8000
+          name: metrics
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: DEBUG
+          value: "False"
+        - name: MONITORING_ENABLED
+          value: "True"
+        - name: PROMETHEUS_PORT
+          value: "8000"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: LOG_FORMAT
+          value: "json"
+        - name: WORKER_PROCESSES
+          value: "4"
+        - name: WORKER_THREADS
+          value: "2"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: app-data
+          mountPath: /app/data
+        - name: app-logs
+          mountPath: /app/data/logs
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: doorbell-data-pvc
+      - name: app-logs
+        persistentVolumeClaim:
+          claimName: doorbell-logs-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: doorbell-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: doorbell-logs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

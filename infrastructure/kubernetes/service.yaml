@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: doorbell-system
+  labels:
+    app: doorbell-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: metrics
+  selector:
+    app: doorbell-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doorbell-system-metrics
+  labels:
+    app: doorbell-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: metrics
+  selector:
+    app: doorbell-system
