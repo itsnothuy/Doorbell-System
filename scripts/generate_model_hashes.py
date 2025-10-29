@@ -30,7 +30,17 @@ def calculate_file_hash(file_path: Path, algorithm: str = "sha256") -> str:
     Returns:
         Hexadecimal hash string
     """
-    hash_func = getattr(hashlib, algorithm)()
+    # Use whitelist approach for security
+    ALLOWED_ALGORITHMS = {
+        'sha256': hashlib.sha256,
+        'sha512': hashlib.sha512,
+        'md5': hashlib.md5
+    }
+    
+    if algorithm not in ALLOWED_ALGORITHMS:
+        raise ValueError(f"Unsupported algorithm: {algorithm}. Allowed: {list(ALLOWED_ALGORITHMS.keys())}")
+    
+    hash_func = ALLOWED_ALGORITHMS[algorithm]()
     
     with open(file_path, 'rb') as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -39,13 +49,16 @@ def calculate_file_hash(file_path: Path, algorithm: str = "sha256") -> str:
     return hash_func.hexdigest()
 
 
-def generate_model_info(model_file: Path, model_format: str = None) -> Dict[str, Any]:
+def generate_model_info(model_file: Path, model_format: str = None, 
+                       version: str = '1.0.0', base_url: str = 'https://models.doorbell-system.com') -> Dict[str, Any]:
     """
     Generate model information including hash and size.
     
     Args:
         model_file: Path to model file
         model_format: Model format (auto-detected from extension if not provided)
+        version: Model version (default: '1.0.0')
+        base_url: Base URL for model downloads
         
     Returns:
         Dictionary with model information
@@ -78,8 +91,9 @@ def generate_model_info(model_file: Path, model_format: str = None) -> Dict[str,
         'sha256_hash': sha256_hash,
         'size': file_size,
         'format': model_format,
-        'version': '1.0.0',
-        'file': str(model_file)
+        'version': version,
+        'file': str(model_file),
+        'url': f'{base_url}/{model_name}.{model_format}'
     }
 
 
@@ -95,7 +109,7 @@ def generate_python_code(model_info: Dict[str, Any]) -> str:
     """
     code = f"""'{model_info['name']}': ModelInfo(
     name='{model_info['name']}',
-    url='https://models.doorbell-system.com/{model_info['name']}.{model_info['format']}',
+    url='{model_info['url']}',
     sha256_hash='{model_info['sha256_hash']}',
     size={model_info['size']},
     format='{model_info['format']}',
@@ -125,6 +139,18 @@ def main():
         type=str,
         default=None,
         help='Output file for generated Python code (prints to stdout if not specified)'
+    )
+    parser.add_argument(
+        '--version',
+        type=str,
+        default='1.0.0',
+        help='Model version (default: 1.0.0)'
+    )
+    parser.add_argument(
+        '--base-url',
+        type=str,
+        default='https://models.doorbell-system.com',
+        help='Base URL for model downloads (default: https://models.doorbell-system.com)'
     )
     
     args = parser.parse_args()
@@ -160,7 +186,12 @@ def main():
         print(f"Processing: {model_file.name}")
         
         try:
-            model_info = generate_model_info(model_file, args.format)
+            model_info = generate_model_info(
+                model_file, 
+                args.format,
+                version=args.version,
+                base_url=args.base_url
+            )
             all_model_info.append(model_info)
             
             print(f"  - Size: {model_info['size']:,} bytes")

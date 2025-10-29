@@ -463,7 +463,6 @@ Error: Model too large: X bytes exceeds limit of Y bytes
 For security issues or questions:
 - Email: security@doorbell-system.com
 - Issue Tracker: [GitHub Issues](https://github.com/itsnothuy/Doorbell-System/issues)
-- Security Policy: [SECURITY.md](../SECURITY.md)
 
 ## License
 
