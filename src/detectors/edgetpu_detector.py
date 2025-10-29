@@ -722,11 +722,7 @@ class EdgeTPUDetector(BaseDetector):
         super().cleanup()
         
         try:
-            if self.interpreter:
-                del self.interpreter
-                self.interpreter = None
-            
-            if self.inference_engine:
+            if hasattr(self, 'inference_engine') and self.inference_engine:
                 del self.inference_engine
                 self.inference_engine = None
             

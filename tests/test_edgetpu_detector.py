@@ -52,25 +52,27 @@ class TestEdgeTPUDetector(unittest.TestCase):
             'max_face_size': (1000, 1000)
         }
     
-    @patch('src.detectors.edgetpu_detector.logger')
-    def test_is_available_with_edgetpu(self, mock_logger):
+    def test_is_available_with_edgetpu(self):
         """Test availability check when EdgeTPU is available."""
-        # Mock edgetpu module
+        # Mock the edgetpu module at the source
         mock_edgetpu_module = Mock()
         mock_edgetpu_module.list_edge_tpus.return_value = [{'type': 'usb', 'path': '/dev/bus/usb/001/002'}]
         
-        # Patch both the EDGETPU_AVAILABLE flag and the edgetpu import
         with patch('src.detectors.edgetpu_detector.EDGETPU_AVAILABLE', True):
-            with patch.dict('sys.modules', {'pycoral.utils.edgetpu': mock_edgetpu_module}):
-                # Need to import after patching
-                import importlib
-                import src.detectors.edgetpu_detector as etd
-                importlib.reload(etd)
+            # Import and patch the module-level edgetpu
+            import src.detectors.edgetpu_detector as etd_module
+            original_edgetpu = getattr(etd_module, 'edgetpu', None)
+            
+            try:
+                # Set the edgetpu in the module
+                setattr(etd_module, 'edgetpu', mock_edgetpu_module)
                 
-                # Mock the edgetpu reference in the module
-                with patch.object(etd, 'edgetpu', mock_edgetpu_module):
-                    available = etd.EdgeTPUDetector.is_available()
-                    self.assertTrue(available)
+                available = EdgeTPUDetector.is_available()
+                self.assertTrue(available)
+            finally:
+                # Restore original
+                if original_edgetpu is not None:
+                    setattr(etd_module, 'edgetpu', original_edgetpu)
     
     @patch('src.detectors.edgetpu_detector.logger')
     def test_is_available_without_edgetpu_device(self, mock_logger):
