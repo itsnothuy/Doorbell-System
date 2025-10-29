@@ -112,21 +112,37 @@ class SensorConfig:
     """Environmental sensor configuration."""
     
     enabled: bool = False
-    temperature_sensor: Dict[str, Any] = field(default_factory=lambda: {
+    # Temperature/Humidity sensor (DHT22)
+    temperature_humidity: Dict[str, Any] = field(default_factory=lambda: {
         'enabled': False,
         'pin': 4,
-        'type': 'DHT22'
+        'type': 'DHT22',
+        'polling_interval': 30.0
     })
-    humidity_sensor: Dict[str, Any] = field(default_factory=lambda: {
+    # Temperature only sensor (DS18B20)
+    temperature_only: Dict[str, Any] = field(default_factory=lambda: {
         'enabled': False,
         'pin': 4,
-        'type': 'DHT22'
+        'type': 'DS18B20',
+        'polling_interval': 30.0
     })
-    motion_sensor: Dict[str, Any] = field(default_factory=lambda: {
+    # Motion sensor (PIR)
+    motion: Dict[str, Any] = field(default_factory=lambda: {
         'enabled': False,
         'pin': 17,
-        'type': 'PIR'
+        'type': 'PIR',
+        'polling_interval': 1.0
     })
+    # Pressure sensor (BMP280)
+    pressure: Dict[str, Any] = field(default_factory=lambda: {
+        'enabled': False,
+        'i2c_address': 0x77,
+        'type': 'BMP280',
+        'polling_interval': 60.0
+    })
+    
+    # Data storage
+    data_dir: str = 'data/sensors'
     
     # Mock/simulation settings
     base_temperature: float = 22.0
@@ -137,21 +153,31 @@ class SensorConfig:
         """Create config from dictionary."""
         return cls(
             enabled=bool(config_dict.get('enabled', False)),
-            temperature_sensor=config_dict.get('temperature_sensor', {
+            temperature_humidity=config_dict.get('temperature_humidity', {
                 'enabled': False,
                 'pin': 4,
-                'type': 'DHT22'
+                'type': 'DHT22',
+                'polling_interval': 30.0
             }),
-            humidity_sensor=config_dict.get('humidity_sensor', {
+            temperature_only=config_dict.get('temperature_only', {
                 'enabled': False,
                 'pin': 4,
-                'type': 'DHT22'
+                'type': 'DS18B20',
+                'polling_interval': 30.0
             }),
-            motion_sensor=config_dict.get('motion_sensor', {
+            motion=config_dict.get('motion', {
                 'enabled': False,
                 'pin': 17,
-                'type': 'PIR'
+                'type': 'PIR',
+                'polling_interval': 1.0
             }),
+            pressure=config_dict.get('pressure', {
+                'enabled': False,
+                'i2c_address': 0x77,
+                'type': 'BMP280',
+                'polling_interval': 60.0
+            }),
+            data_dir=config_dict.get('data_dir', 'data/sensors'),
             base_temperature=float(config_dict.get('base_temperature', 22.0)),
             base_humidity=float(config_dict.get('base_humidity', 45.0))
         )
@@ -160,11 +186,25 @@ class SensorConfig:
         """Convert config to dictionary."""
         return {
             'enabled': self.enabled,
-            'temperature_sensor': self.temperature_sensor,
-            'humidity_sensor': self.humidity_sensor,
-            'motion_sensor': self.motion_sensor,
+            'temperature_humidity': self.temperature_humidity,
+            'temperature_only': self.temperature_only,
+            'motion': self.motion,
+            'pressure': self.pressure,
+            'data_dir': self.data_dir,
             'base_temperature': self.base_temperature,
             'base_humidity': self.base_humidity
+        }
+    
+    def get_sensor_manager_config(self) -> Dict[str, Any]:
+        """Get configuration for SensorManager."""
+        return {
+            'data_dir': self.data_dir,
+            'sensors': {
+                'temperature_humidity': self.temperature_humidity,
+                'temperature_only': self.temperature_only,
+                'motion': self.motion,
+                'pressure': self.pressure
+            }
         }
 
 

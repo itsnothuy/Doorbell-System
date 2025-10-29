@@ -5,9 +5,10 @@ A low-cost, Raspberry Pi-based home security system that recognizes faces at you
 ## Features
 
 - **Face Recognition**: Detect and recognize faces using advanced deep learning models
+- **Environmental Sensors**: Monitor temperature, humidity, motion, and pressure (Raspberry Pi)
 - **Whitelist Management**: Maintain a database of known/authorized persons
 - **Blacklist Integration**: Cross-check against FBI most wanted list
-- **Real-time Alerts**: Instant Telegram notifications with photos
+- **Real-time Alerts**: Instant Telegram notifications with photos and environmental data
 - **Local Processing**: All face recognition happens locally for privacy
 - **Low Cost**: Built with Raspberry Pi 4 and common components (~$100 total)
 
@@ -42,7 +43,13 @@ This system follows a **modular monolith** architecture inspired by [Frigate NVR
 - Weatherproof enclosure
 - 5V 3A Power Supply
 
-**Total Cost: ~$100**
+**Optional Sensors** (for environmental monitoring):
+- DHT22 Temperature/Humidity Sensor ($5-10)
+- PIR Motion Sensor ($3-5)
+- BMP280 Pressure Sensor ($5-8)
+- DS18B20 Waterproof Temperature Sensor ($3-5)
+
+**Total Cost: ~$100** (base) + ~$15-30 (with sensors)
 
 ### 🍎 Development/Testing (macOS/PC)
 - MacBook Air/Pro (M1/M2/Intel) or any PC
@@ -295,6 +302,7 @@ Doorbell-System/
 
 ## Documentation
 
+- [Sensor Integration Guide](docs/SENSOR_INTEGRATION_GUIDE.md) ⭐ **NEW** - Raspberry Pi sensor setup
 - [Pipeline Integration Guide](docs/PIPELINE_INTEGRATION.md) ⭐ **NEW**
 - [Architecture Documentation](docs/ARCHITECTURE.md)
 - [Installation Guide](docs/installation.md)
