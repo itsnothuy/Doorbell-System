@@ -1,0 +1,207 @@
+# Quality Gates Configuration
+
+# Code coverage requirements
+coverage:
+  target: 95.0           # Target coverage percentage
+  minimum: 80.0          # Minimum acceptable coverage
+  
+  # Coverage by component
+  components:
+    pipeline: 90.0       # Pipeline components
+    communication: 90.0  # Message bus and events
+    detectors: 85.0      # Face detection
+    storage: 85.0        # Database and storage
+    enrichment: 80.0     # Enrichment processors
+    hardware: 75.0       # Hardware abstraction (harder to test)
+    
+  # Fail build if coverage drops below minimum
+  fail_under: 80.0
+  
+  # Allow coverage to drop by this percentage without failing
+  drop_tolerance: 2.0
+
+# Code quality requirements
+code_quality:
+  # Linting
+  linting:
+    ruff:
+      max_complexity: 10
+      max_line_length: 100
+      fail_on_error: true
+      
+    black:
+      check_only: true
+      fail_on_error: true
+      
+    isort:
+      check_only: true
+      fail_on_error: true
+      
+  # Type checking
+  type_checking:
+    mypy:
+      enabled: true
+      strict: false
+      fail_on_error: false  # Warning only for now
+      
+  # Security scanning
+  security:
+    bandit:
+      severity_threshold: medium
+      confidence_threshold: medium
+      fail_on_high: true
+      
+    safety:
+      fail_on_vulnerability: true
+      ignore_ids: []  # IDs to ignore
+
+# Performance requirements
+performance:
+  # Latency requirements (milliseconds)
+  latency:
+    frame_capture: 100
+    motion_detection: 50
+    face_detection: 500
+    face_recognition: 300
+    event_processing: 100
+    end_to_end: 2000
+    
+  # Throughput requirements
+  throughput:
+    frames_per_second: 10.0
+    events_per_second: 50.0
+    
+  # Resource usage limits
+  resources:
+    max_memory_mb: 500
+    max_cpu_percent: 80
+    
+  # Performance regression tolerance (percentage)
+  regression_tolerance: 10.0
+
+# Test requirements
+tests:
+  # Test execution requirements
+  execution:
+    # All tests must pass
+    require_all_pass: true
+    
+    # Minimum number of tests
+    minimum_tests:
+      unit: 50
+      integration: 20
+      e2e: 5
+      
+    # Maximum test duration
+    max_duration:
+      unit: 600       # 10 minutes
+      integration: 1800  # 30 minutes
+      e2e: 2700       # 45 minutes
+      
+  # Test stability
+  stability:
+    # Maximum allowed flaky tests
+    max_flaky_tests: 5
+    
+    # Minimum pass rate over last N runs
+    min_pass_rate: 95.0
+    lookback_runs: 10
+
+# Documentation requirements
+documentation:
+  # Require docstrings
+  docstrings:
+    modules: true
+    classes: true
+    functions: true
+    coverage: 80.0
+    
+  # Require type hints
+  type_hints:
+    enabled: true
+    coverage: 70.0
+
+# Security requirements
+security:
+  # No critical or high severity vulnerabilities allowed
+  max_severity:
+    critical: 0
+    high: 0
+    medium: 5  # Allow up to 5 medium severity issues
+    
+  # Vulnerability scanning
+  scanning:
+    dependencies: true
+    code: true
+    containers: false  # Enable when using containers
+    
+  # SAST tools
+  sast:
+    bandit: true
+    safety: true
+
+# Build requirements
+build:
+  # Build must succeed
+  must_succeed: true
+  
+  # Maximum build time (minutes)
+  max_duration: 30
+  
+  # Require clean build (no warnings)
+  require_clean: false
+
+# Branch-specific requirements
+branches:
+  main:
+    coverage: 90.0
+    require_all_pass: true
+    require_security_scan: true
+    require_performance_tests: true
+    
+  develop:
+    coverage: 85.0
+    require_all_pass: true
+    require_security_scan: true
+    require_performance_tests: false
+    
+  feature:
+    coverage: 80.0
+    require_all_pass: true
+    require_security_scan: false
+    require_performance_tests: false
+
+# Notifications
+notifications:
+  # Notify on failure
+  on_failure:
+    - github_status
+    - github_comment
+    
+  # Notify on success after failure
+  on_recovery:
+    - github_status
+    
+  # Notify on coverage drop
+  on_coverage_drop:
+    - github_comment
+
+# Allowed failures (non-blocking)
+allowed_failures:
+  # Performance tests can fail without blocking
+  - performance_regression
+  
+  # Type checking can fail without blocking
+  - mypy_errors
+  
+  # Documentation coverage can fail without blocking
+  - docstring_coverage
+
+# Required checks (blocking)
+required_checks:
+  - unit_tests
+  - integration_tests
+  - e2e_tests
+  - code_quality
+  - security_scan
+  - coverage_threshold
