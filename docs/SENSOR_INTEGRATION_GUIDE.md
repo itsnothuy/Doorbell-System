@@ -508,6 +508,6 @@ python --version
 ## Additional Resources
 
 - [Adafruit DHT22 Guide](https://learn.adafruit.com/dht)
-- [DS18B20 Setup Guide](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing)
+- [DS18B20 Temperature Sensing](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing)
 - [Raspberry Pi GPIO Pinout](https://pinout.xyz/)
-- [I2C Configuration](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configuring-i2c)
+- [I2C Configuration Guide](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configuring-i2c)

@@ -231,7 +231,6 @@ async def main():
     monitor.setup_sensors()
     
     # Choose monitoring mode
-    import sys
     if len(sys.argv) > 1:
         # Run for specified duration
         duration = int(sys.argv[1])
