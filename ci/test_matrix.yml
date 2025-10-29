@@ -1,0 +1,109 @@
+# Test Matrix Configuration
+
+# Python versions to test against
+python_versions:
+  - "3.10"
+  - "3.11"
+  - "3.12"
+
+# Operating systems to test on
+operating_systems:
+  - ubuntu-latest
+  - macos-latest
+  - windows-latest
+
+# Test categories with specific configurations
+test_categories:
+  unit:
+    parallel: true
+    workers: 4
+    timeout: 15m
+    coverage: true
+    
+  integration:
+    parallel: false
+    timeout: 30m
+    coverage: true
+    
+  e2e:
+    parallel: false
+    timeout: 45m
+    coverage: true
+    
+  performance:
+    parallel: false
+    timeout: 30m
+    benchmark: true
+    
+  security:
+    parallel: true
+    workers: 2
+    timeout: 20m
+    
+  load:
+    parallel: false
+    timeout: 60m
+
+# Test execution matrix
+matrix:
+  # Fast feedback: Unit tests on all Python versions
+  fast:
+    - category: unit
+      python: ["3.10", "3.11", "3.12"]
+      os: ubuntu-latest
+      
+  # Comprehensive: All test types on primary version
+  comprehensive:
+    - category: [unit, integration, e2e, security]
+      python: "3.11"
+      os: ubuntu-latest
+      
+  # Cross-platform: Critical tests on all OS
+  cross_platform:
+    - category: unit
+      python: "3.11"
+      os: [ubuntu-latest, macos-latest, windows-latest]
+      
+  # Nightly: Full suite including performance and load
+  nightly:
+    - category: [unit, integration, e2e, performance, security, load]
+      python: "3.11"
+      os: ubuntu-latest
+
+# Test dependencies by category
+dependencies:
+  base:
+    - pytest>=7.4.0
+    - pytest-cov>=4.1.0
+    - pytest-mock>=3.11.0
+    - pytest-asyncio>=0.21.0
+    
+  unit:
+    - pytest-xdist>=3.3.0  # For parallel execution
+    
+  performance:
+    - pytest-benchmark>=4.0.0
+    - psutil>=5.9.0
+    - memory-profiler>=0.61.0
+    
+  security:
+    - bandit>=1.7.5
+    - safety>=2.3.0
+    
+  load:
+    - locust>=2.15.0  # For load testing
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  delay: 5  # seconds
+  on_failure: [TimeoutError, ConnectionError]
+
+# Timeout configuration by test type
+timeouts:
+  unit: 600        # 10 minutes
+  integration: 1800  # 30 minutes
+  e2e: 2700        # 45 minutes
+  performance: 1800  # 30 minutes
+  security: 1200    # 20 minutes
+  load: 3600       # 60 minutes
