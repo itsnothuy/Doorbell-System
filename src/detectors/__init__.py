@@ -14,13 +14,16 @@ from src.detectors.base_detector import (
 )
 from src.detectors.detection_result import DetectionResult
 from src.detectors.cpu_detector import CPUDetector
+from src.detectors.gpu_detector import GPUDetector
+from src.detectors.edgetpu_detector import EdgeTPUDetector
 from src.detectors.detector_factory import (
     DetectorFactory,
     create_detector,
-    GPUDetector,
-    EdgeTPUDetector,
     MockDetector
 )
+from src.detectors.model_manager import ModelManager
+from src.detectors.hardware_detector import HardwareDetector
+from src.detectors.performance_profiler import PerformanceProfiler, BenchmarkResult
 
 __all__ = [
     'BaseDetector',
@@ -34,5 +37,9 @@ __all__ = [
     'EdgeTPUDetector',
     'MockDetector',
     'DetectorFactory',
-    'create_detector'
+    'create_detector',
+    'ModelManager',
+    'HardwareDetector',
+    'PerformanceProfiler',
+    'BenchmarkResult'
 ]

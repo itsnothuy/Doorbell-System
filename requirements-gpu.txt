@@ -1,0 +1,18 @@
+# GPU-Accelerated Face Detection Dependencies
+# For NVIDIA CUDA-enabled systems
+
+# ONNX Runtime with GPU support
+onnxruntime-gpu>=1.16.0
+
+# Optional: PyTorch with CUDA (alternative backend)
+# torch>=2.0.0+cu118
+# torchvision>=0.15.0+cu118
+
+# Optional: TensorFlow with GPU support
+# tensorflow-gpu>=2.13.0
+
+# GPU monitoring and management
+pynvml>=11.5.0
+
+# Performance profiling
+py-cpuinfo>=9.0.0

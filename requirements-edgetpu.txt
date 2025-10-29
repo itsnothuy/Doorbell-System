@@ -1,0 +1,18 @@
+# Coral EdgeTPU Face Detection Dependencies
+# For Google Coral EdgeTPU devices (USB Accelerator, Dev Board, etc.)
+
+# PyCoral - Coral EdgeTPU API
+pycoral>=2.0.0
+
+# TensorFlow Lite Runtime
+tflite-runtime>=2.14.0
+
+# EdgeTPU delegate for TensorFlow Lite
+# Note: EdgeTPU runtime must be installed separately
+# See: https://coral.ai/docs/accelerator/get-started/
+
+# USB device support
+pyusb>=1.2.1
+
+# Model conversion tools (optional, for model optimization)
+# tf-models-official>=2.13.0
