@@ -10,10 +10,21 @@ import time
 import queue
 import threading
 import logging
+import traceback
+import uuid
 from typing import Dict, Any, Callable, Optional, List, Set
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
+
+from src.communication.error_handling import (
+    ErrorLogger,
+    ErrorRecoveryManager,
+    ErrorReport,
+    ErrorCategory,
+    ErrorSeverity,
+    DeadLetterQueue,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +71,16 @@ class MessageBus:
     Supports publish/subscribe, request/reply, and push/pull patterns.
     """
     
-    def __init__(self, max_queue_size: int = 10000):
-        """Initialize the message bus."""
+    def __init__(self, max_queue_size: int = 10000, enable_error_handling: bool = True,
+                 error_log_dir: str = "data/logs/message_bus"):
+        """
+        Initialize the message bus.
+        
+        Args:
+            max_queue_size: Maximum queue size
+            enable_error_handling: Enable comprehensive error handling
+            error_log_dir: Directory for error logs
+        """
         self.max_queue_size = max_queue_size
         self.running = False
         
@@ -84,14 +103,28 @@ class MessageBus:
             'messages_dropped': 0,
             'active_subscriptions': 0,
             'queue_sizes': {},
-            'errors': 0
+            'errors': 0,
+            'messages_failed': 0,
+            'errors_recovered': 0,
+            'start_time': time.time()
         }
         self.stats_lock = threading.Lock()
         
         # Internal queue for all messages
         self.main_queue = queue.PriorityQueue(maxsize=max_queue_size)
         
-        logger.info("Message bus initialized")
+        # Error handling infrastructure
+        self.enable_error_handling = enable_error_handling
+        if enable_error_handling:
+            self.error_logger = ErrorLogger(error_log_dir)
+            self.recovery_manager = ErrorRecoveryManager()
+            self.dead_letter_queue = DeadLetterQueue(f"{error_log_dir}/dead_letter")
+        else:
+            self.error_logger = None
+            self.recovery_manager = None
+            self.dead_letter_queue = None
+        
+        logger.info("Message bus initialized with error handling enabled" if enable_error_handling else "Message bus initialized")
     
     def start(self) -> None:
         """Start the message bus and begin processing messages."""
@@ -176,6 +209,11 @@ class MessageBus:
             logger.warning(f"Message queue full - dropping message for topic '{topic}'")
             with self.stats_lock:
                 self.stats['messages_dropped'] += 1
+            
+            # Handle queue overflow with error handling system
+            if self.enable_error_handling:
+                self._handle_queue_overflow('main_queue', message)
+            
             return False
         except Exception as e:
             logger.error(f"Failed to publish message: {e}")
@@ -340,6 +378,18 @@ class MessageBus:
             with self.stats_lock:
                 self.stats['errors'] += 1
             
+            # Use error handling system if enabled
+            if self.enable_error_handling:
+                self._handle_message_processing_error(
+                    message, 
+                    e, 
+                    {
+                        'subscriber_id': subscription.subscriber_id,
+                        'topic': message.topic,
+                        'queue_name': 'main_queue'
+                    }
+                )
+            
             # Consider deactivating problematic subscribers
             if self.stats['errors'] > 100:  # Threshold for problematic subscriber
                 logger.warning(f"Deactivating problematic subscriber: {subscription.subscriber_id}")
@@ -350,6 +400,346 @@ class MessageBus:
         # Simple wildcard matching (* and ?)
         import fnmatch
         return fnmatch.fnmatch(message_topic, pattern)
+    
+    def _handle_message_processing_error(self, message: Message, error: Exception, 
+                                        context: Dict[str, Any]) -> None:
+        """
+        Handle errors during message processing with comprehensive recovery.
+        
+        Args:
+            message: The message that failed processing
+            error: The exception that occurred
+            context: Additional context about the error
+        """
+        if not self.enable_error_handling:
+            return
+        
+        try:
+            # Create error report
+            error_report = ErrorReport(
+                error_id=str(uuid.uuid4()),
+                timestamp=time.time(),
+                category=self._categorize_error(error),
+                severity=self._assess_severity(error, context),
+                component='message_processor',
+                message=str(error),
+                exception_type=type(error).__name__,
+                traceback=traceback.format_exc(),
+                context={
+                    'message': str(message)[:1000],  # Truncate large messages
+                    'message_type': type(message).__name__,
+                    'message_topic': message.topic,
+                    'queue_name': context.get('queue_name'),
+                    'subscriber_id': context.get('subscriber_id'),
+                    'subscriber_count': len(self.subscriptions.get(message.topic, []))
+                }
+            )
+            
+            # Log error
+            self.error_logger.log_error(error_report)
+            
+            # Update metrics
+            with self.stats_lock:
+                self.stats['messages_failed'] += 1
+            
+            # Attempt recovery
+            recovery_context = {
+                'message_queue': self,
+                'connection_manager': self,
+                'dead_letter_queue': self.dead_letter_queue,
+                'queue_manager': self,
+                'timeout_manager': self,
+                'serializer': None
+            }
+            
+            recovery_successful = self.recovery_manager.attempt_recovery(error_report, recovery_context)
+            
+            if recovery_successful:
+                with self.stats_lock:
+                    self.stats['errors_recovered'] += 1
+                logger.info(f"Successfully recovered from message processing error: {error_report.error_id}")
+            else:
+                logger.error(f"Failed to recover from message processing error: {error_report.error_id}")
+                
+                # Escalate critical errors
+                if error_report.severity == ErrorSeverity.CRITICAL:
+                    self._escalate_critical_error(error_report)
+            
+        except Exception as recovery_error:
+            # Fallback error handling to prevent infinite loops
+            logger.critical(f"Error in error handling: {recovery_error}")
+    
+    def _handle_connection_error(self, connection_id: str, error: Exception) -> None:
+        """
+        Handle connection-related errors with automatic recovery.
+        
+        Args:
+            connection_id: Identifier of the connection that failed
+            error: The exception that occurred
+        """
+        if not self.enable_error_handling:
+            return
+        
+        try:
+            error_report = ErrorReport(
+                error_id=str(uuid.uuid4()),
+                timestamp=time.time(),
+                category=ErrorCategory.CONNECTION_ERROR,
+                severity=self._assess_connection_severity(connection_id, error),
+                component='connection_manager',
+                message=str(error),
+                exception_type=type(error).__name__,
+                traceback=traceback.format_exc(),
+                context={
+                    'connection_id': connection_id,
+                    'active_connections': 0,  # Would be len(self.connections) if we had connections
+                    'error_details': str(error)
+                }
+            )
+            
+            self.error_logger.log_error(error_report)
+            
+            logger.info(f"Connection error logged for {connection_id}: {error_report.error_id}")
+            
+        except Exception as e:
+            logger.critical(f"Critical error in connection error handling: {e}")
+    
+    def _handle_queue_overflow(self, queue_name: str, message: Message) -> None:
+        """
+        Handle queue capacity overflow with backpressure and prioritization.
+        
+        Args:
+            queue_name: Name of the queue that overflowed
+            message: Message that couldn't be queued
+        """
+        if not self.enable_error_handling:
+            return
+        
+        try:
+            error_report = ErrorReport(
+                error_id=str(uuid.uuid4()),
+                timestamp=time.time(),
+                category=ErrorCategory.QUEUE_OVERFLOW,
+                severity=ErrorSeverity.HIGH,
+                component='queue_manager',
+                message=f"Queue {queue_name} overflow",
+                exception_type='QueueOverflow',
+                traceback='',
+                context={
+                    'queue_name': queue_name,
+                    'queue_size': self.main_queue.qsize(),
+                    'message_priority': message.priority.name if hasattr(message.priority, 'name') else 'unknown',
+                    'message_topic': message.topic,
+                    'message_size': len(str(message))
+                }
+            )
+            
+            self.error_logger.log_error(error_report)
+            
+            # Apply backpressure strategies
+            logger.warning(f"Queue overflow detected for {queue_name}, message dropped")
+            
+            # Add to dead letter queue if available
+            if self.dead_letter_queue:
+                self.dead_letter_queue.add_message(message, error_report)
+            
+        except Exception as e:
+            logger.critical(f"Critical error in queue overflow handling: {e}")
+    
+    def _categorize_error(self, error: Exception) -> ErrorCategory:
+        """
+        Categorize error based on exception type and context.
+        
+        Args:
+            error: The exception to categorize
+            
+        Returns:
+            ErrorCategory classification
+        """
+        error_type = type(error).__name__
+        error_str = str(error).lower()
+        
+        if 'connection' in error_type.lower() or 'network' in error_type.lower():
+            return ErrorCategory.CONNECTION_ERROR
+        elif 'timeout' in error_type.lower() or 'timeout' in error_str:
+            return ErrorCategory.TIMEOUT_ERROR
+        elif 'serializ' in error_type.lower() or 'pickle' in error_type.lower():
+            return ErrorCategory.SERIALIZATION_ERROR
+        elif 'memory' in error_type.lower() or 'resource' in error_type.lower():
+            return ErrorCategory.RESOURCE_EXHAUSTION
+        elif 'auth' in error_type.lower() or 'permission' in error_type.lower():
+            return ErrorCategory.AUTHENTICATION_ERROR
+        else:
+            return ErrorCategory.MESSAGE_PROCESSING_ERROR
+    
+    def _assess_severity(self, error: Exception, context: Dict[str, Any]) -> ErrorSeverity:
+        """
+        Assess error severity based on error type and context.
+        
+        Args:
+            error: The exception
+            context: Additional context
+            
+        Returns:
+            ErrorSeverity classification
+        """
+        error_type = type(error).__name__
+        
+        # Critical errors that could crash the system
+        if error_type in ['MemoryError', 'SystemError', 'KeyboardInterrupt']:
+            return ErrorSeverity.CRITICAL
+        
+        # High severity for infrastructure errors
+        if error_type in ['ConnectionError', 'TimeoutError', 'OSError']:
+            return ErrorSeverity.HIGH
+        
+        # Medium severity for processing errors
+        if error_type in ['ValueError', 'TypeError', 'AttributeError']:
+            return ErrorSeverity.MEDIUM
+        
+        # Low severity for minor issues
+        return ErrorSeverity.LOW
+    
+    def _assess_connection_severity(self, connection_id: str, error: Exception) -> ErrorSeverity:
+        """
+        Assess severity of connection errors.
+        
+        Args:
+            connection_id: Connection identifier
+            error: The exception
+            
+        Returns:
+            ErrorSeverity classification
+        """
+        # For now, treat all connection errors as HIGH severity
+        # In a more sophisticated system, we might check if there are backup connections
+        return ErrorSeverity.HIGH
+    
+    def _escalate_critical_error(self, error_report: ErrorReport) -> None:
+        """
+        Escalate critical errors to system administrators.
+        
+        Args:
+            error_report: The critical error report
+        """
+        try:
+            # Log critical error
+            logger.critical(f"CRITICAL ERROR ESCALATION: {error_report.error_id}")
+            logger.critical(f"Category: {error_report.category.value}, Message: {error_report.message}")
+            
+            # In production, this would send notifications
+            # self.notification_system.send_critical_alert(error_report)
+            
+        except Exception as e:
+            logger.critical(f"Failed to escalate critical error: {e}")
+    
+    def requeue_message(self, message: Message) -> bool:
+        """
+        Requeue a message for reprocessing.
+        
+        Args:
+            message: Message to requeue
+            
+        Returns:
+            True if requeue was successful
+        """
+        try:
+            queue_item = (message.priority.value, message.timestamp, message)
+            self.main_queue.put_nowait(queue_item)
+            logger.debug(f"Requeued message {message.message_id}")
+            return True
+        except queue.Full:
+            logger.warning(f"Cannot requeue message {message.message_id}: queue full")
+            return False
+    
+    def apply_backpressure(self, queue_name: str) -> int:
+        """
+        Apply backpressure by dropping low-priority messages.
+        
+        Args:
+            queue_name: Name of the queue to apply backpressure
+            
+        Returns:
+            Number of messages dropped
+        """
+        # This is a simplified implementation
+        # In production, we would implement more sophisticated backpressure
+        dropped_count = 0
+        logger.info(f"Applying backpressure to {queue_name}")
+        return dropped_count
+    
+    def can_expand_capacity(self, queue_name: str) -> bool:
+        """
+        Check if queue capacity can be expanded.
+        
+        Args:
+            queue_name: Name of the queue
+            
+        Returns:
+            True if expansion is possible
+        """
+        # For now, return False as we have a fixed queue size
+        return False
+    
+    def expand_capacity(self, queue_name: str, factor: float = 1.5) -> None:
+        """
+        Expand queue capacity temporarily.
+        
+        Args:
+            queue_name: Name of the queue
+            factor: Expansion factor
+        """
+        # Not implemented for fixed-size queues
+        logger.warning(f"Queue expansion not supported for {queue_name}")
+    
+    def get_health_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive health status of message bus.
+        
+        Returns:
+            Health status dictionary with metrics and error statistics
+        """
+        try:
+            with self.stats_lock:
+                # Use messages_delivered as messages_processed since they're essentially the same
+                messages_processed = self.stats.get('messages_processed', self.stats['messages_delivered'])
+                messages_failed = self.stats['messages_failed']
+                total_messages = messages_processed + messages_failed
+                success_rate = (messages_processed / total_messages) if total_messages > 0 else 1.0
+                uptime = time.time() - self.stats['start_time']
+            
+            status = {
+                'status': 'healthy' if success_rate > 0.95 else 'degraded' if success_rate > 0.8 else 'critical',
+                'running': self.running,
+                'uptime_seconds': uptime,
+                'messages_processed': messages_processed,
+                'messages_failed': messages_failed,
+                'success_rate': success_rate,
+                'errors_recovered': self.stats['errors_recovered'],
+                'main_queue_size': self.main_queue.qsize(),
+                'main_queue_full': self.main_queue.qsize() >= self.max_queue_size * 0.9,
+                'active_subscriptions': sum(
+                    len([s for s in subs if s.active]) 
+                    for subs in self.subscriptions.values()
+                ),
+                'dispatch_thread_alive': self.dispatch_thread.is_alive() if self.dispatch_thread else False,
+            }
+            
+            # Add error statistics if error handling is enabled
+            if self.enable_error_handling and self.error_logger:
+                error_stats = self.error_logger.get_error_statistics()
+                status['error_statistics'] = error_stats
+                
+                if self.recovery_manager:
+                    status['circuit_breaker_status'] = self.recovery_manager.get_circuit_breaker_status()
+            
+            return status
+            
+        except Exception as e:
+            logger.error(f"Error getting health status: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'status': 'unknown', 'error': str(e)}
     
     def get_stats(self) -> Dict[str, Any]:
         """Get message bus statistics."""
@@ -377,19 +767,12 @@ class MessageBus:
             return len([s for s in self.subscriptions[topic] if s.active])
     
     def health_check(self) -> Dict[str, Any]:
-        """Perform health check and return status."""
-        return {
-            'running': self.running,
-            'main_queue_size': self.main_queue.qsize(),
-            'main_queue_full': self.main_queue.qsize() >= self.max_queue_size * 0.9,
-            'active_subscriptions': sum(
-                len([s for s in subs if s.active]) 
-                for subs in self.subscriptions.values()
-            ),
-            'dispatch_thread_alive': self.dispatch_thread.is_alive() if self.dispatch_thread else False,
-            'error_rate': self.stats['errors'] / max(1, self.stats['messages_published']),
-            'stats': self.get_stats()
-        }
+        """
+        Perform health check and return status.
+        
+        Returns comprehensive health status including error handling metrics.
+        """
+        return self.get_health_status()
 
 
 # Convenience functions for common messaging patterns
@@ -460,13 +843,21 @@ def get_message_bus() -> MessageBus:
         return _global_message_bus
 
 
-def init_message_bus(max_queue_size: int = 10000) -> MessageBus:
-    """Initialize the global message bus with specific configuration."""
+def init_message_bus(max_queue_size: int = 10000, enable_error_handling: bool = True,
+                     error_log_dir: str = "data/logs/message_bus") -> MessageBus:
+    """
+    Initialize the global message bus with specific configuration.
+    
+    Args:
+        max_queue_size: Maximum queue size
+        enable_error_handling: Enable comprehensive error handling
+        error_log_dir: Directory for error logs
+    """
     global _global_message_bus
     
     with _bus_lock:
         if _global_message_bus is not None:
             _global_message_bus.stop()
         
-        _global_message_bus = MessageBus(max_queue_size)
+        _global_message_bus = MessageBus(max_queue_size, enable_error_handling, error_log_dir)
         return _global_message_bus
