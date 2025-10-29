@@ -640,9 +640,8 @@ class EnsembleDetector(BaseDetector):
         if detector not in self.component_detectors:
             self.component_detectors.append(detector)
 
-        logger.info(
-            f"Added detector '{name}' to ensemble (weight: {weight}, priority: {
-                priority.name})")
+        msg = f"Added detector '{name}' to ensemble (weight: {weight}, priority: {priority.name})"
+        logger.info(msg)
 
     def remove_detector(self, name: str) -> bool:
         """Remove a detector from the ensemble."""
@@ -702,9 +701,8 @@ class EnsembleDetector(BaseDetector):
                 return False
 
             self.is_initialized = True
-            logger.info(
-                f"Ensemble detector initialized with {
-                    len(enabled_detectors)} active detectors")
+            msg = f"Ensemble detector initialized with {len(enabled_detectors)} active detectors"
+            logger.info(msg)
 
             return True
 
@@ -759,9 +757,8 @@ class EnsembleDetector(BaseDetector):
                 logger.warning("No detectors selected for ensemble detection")
                 return [], DetectionMetrics()
 
-            logger.debug(
-                f"Running ensemble detection with {
-                    len(selected_detector_names)} detectors")
+            num_detectors = len(selected_detector_names)
+            logger.debug(f"Running ensemble detection with {num_detectors} detectors")
 
             # Run detection on selected detectors
             detector_results: Dict[str, List[FaceDetectionResult]] = {}
@@ -786,22 +783,23 @@ class EnsembleDetector(BaseDetector):
             self._update_metrics(detector_results, fusion_time, total_time)
 
             # Create detection metrics
+            inference_time = total_time - fusion_time
+            avg_confidence = (sum(r.confidence for r in final_results) /
+                              len(final_results) if final_results else 0.0)
+
             metrics = DetectionMetrics(
-                inference_time=total_time -
-                fusion_time,
+                inference_time=inference_time,
                 preprocessing_time=0.0,
                 postprocessing_time=fusion_time,
                 total_time=total_time,
                 face_count=len(final_results),
-                confidence=sum(
-                    r.confidence for r in final_results) /
-                len(final_results) if final_results else 0.0)
+                confidence=avg_confidence
+            )
 
-            logger.debug(
-                f"Ensemble detection completed in {
-                    total_time *
-                    1000:.2f}ms, found {
-                    len(final_results)} faces")
+            total_time_ms = total_time * 1000
+            num_faces = len(final_results)
+            logger.debug(f"Ensemble detection completed in {total_time_ms:.2f}ms, "
+                         f"found {num_faces} faces")
 
             return final_results, metrics
 
