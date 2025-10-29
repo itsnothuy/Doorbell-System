@@ -5,9 +5,9 @@ Prometheus-compatible metrics collection for production monitoring.
 """
 
 from monitoring.metrics.metrics_collector import MetricsCollector
-from monitoring.metrics.prometheus_config import PrometheusConfig
+from monitoring.metrics.prometheus_config import ProductionMonitoringSystem
 
 __all__ = [
     "MetricsCollector",
-    "PrometheusConfig",
+    "ProductionMonitoringSystem",
 ]
