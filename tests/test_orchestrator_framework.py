@@ -55,7 +55,7 @@ class TestTestOrchestrator:
         orchestrator = TestOrchestrator(config)
         cmd = orchestrator._build_pytest_command(TestSuite.UNIT)
 
-        assert "pytest" in cmd[1]
+        assert "pytest" in cmd[2]  # ['python', '-m', 'pytest', ...]
         assert "-v" in cmd
         assert "--cov=src" in cmd
         assert any("unit" in str(arg) for arg in cmd)
@@ -69,7 +69,7 @@ class TestTestOrchestrator:
         orchestrator = TestOrchestrator(config)
         cmd = orchestrator._build_pytest_command(TestSuite.PERFORMANCE)
 
-        assert "pytest" in cmd[1]
+        assert "pytest" in cmd[2]  # ['python', '-m', 'pytest', ...]
         assert "-q" in cmd
         assert "--cov=src" not in cmd
         assert any("performance" in str(arg) for arg in cmd)
