@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered doorbell security system with face recognition">
+    <meta name="theme-color" content="#2563eb">
+    <title>Doorbell Security System - Demo</title>
+    
+    <!-- Enhanced Design System CSS -->
+    <link rel="stylesheet" href="static/css/design-system.css">
+    <link rel="stylesheet" href="static/css/components.css">
+    <link rel="stylesheet" href="static/css/layout.css">
+    
+    <!-- Iconify for modern icons -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.8/iconify-icon.min.js"></script>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Toggle navigation">
+        <iconify-icon icon="material-symbols:menu"></iconify-icon>
+    </button>
+    
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-logo">
+                    <span class="sidebar-logo-icon">🔔</span>
+                    <span>Doorbell Security</span>
+                </a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#dashboard" class="nav-item active" aria-current="page">
+                            <iconify-icon icon="material-symbols:dashboard-outline"></iconify-icon>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#camera" class="nav-item">
+                            <iconify-icon icon="material-symbols:videocam-outline"></iconify-icon>
+                            Live Camera
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#events" class="nav-item">
+                            <iconify-icon icon="material-symbols:history"></iconify-icon>
+                            Event History
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#known-faces" class="nav-item">
+                            <iconify-icon icon="material-symbols:face-outline"></iconify-icon>
+                            Known Faces
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#settings" class="nav-item">
+                            <iconify-icon icon="material-symbols:settings-outline"></iconify-icon>
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <p>v1.0.0 | AI-Powered Security</p>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content" role="main">
+            <header class="content-header">
+                <h1 class="page-title">Security Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-sm" id="refresh-data" aria-label="Refresh data">
+                        <iconify-icon icon="material-symbols:refresh"></iconify-icon>
+                        Refresh
+                    </button>
+                    <div class="status-indicator" data-status="online">
+                        <span class="status-dot"></span>
+                        <span class="status-text">System Online</span>
+                    </div>
+                </div>
+            </header>
+            
+            <section class="dashboard-grid">
+                <!-- System Control -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:settings-remote-outline"></iconify-icon>
+                            System Control
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                            <button class="btn btn-danger">
+                                <iconify-icon icon="material-symbols:notifications-active"></iconify-icon>
+                                Trigger Doorbell
+                            </button>
+                            <button class="btn btn-primary">
+                                <iconify-icon icon="material-symbols:photo-camera"></iconify-icon>
+                                Capture Photo
+                            </button>
+                            <button class="btn btn-primary">
+                                <iconify-icon icon="material-symbols:face-outline"></iconify-icon>
+                                Test Face Recognition
+                            </button>
+                            <button class="btn btn-warning">
+                                <iconify-icon icon="material-symbols:notifications-outline"></iconify-icon>
+                                Test Notification
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:health-and-safety-outline"></iconify-icon>
+                            System Status
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">Camera</span>
+                                <span class="status-value" data-status="online">✅ Raspberry Pi Camera</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">GPIO</span>
+                                <span class="status-value" data-status="online">✅ Ready</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Telegram</span>
+                                <span class="status-value" data-status="online">✅ Connected</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Known Faces</span>
+                                <span class="status-value">5 known, 2 blacklisted</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LED Control -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:light-mode-outline"></iconify-icon>
+                            LED Control
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="led-controls" style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                            <button class="btn btn-success btn-sm">🟢 Idle</button>
+                            <button class="btn btn-warning btn-sm">🟡 Processing</button>
+                            <button class="btn btn-success btn-sm">🟢 Known</button>
+                            <button class="btn btn-warning btn-sm">🟡 Unknown</button>
+                            <button class="btn btn-danger btn-sm">🔴 Alert</button>
+                            <button class="btn btn-secondary btn-sm">⚫ Off</button>
+                        </div>
+                        
+                        <div class="status-grid" style="margin-top: var(--space-4);">
+                            <div class="status-item">
+                                <span class="status-label">Red LED</span>
+                                <span class="status-value">⚫ OFF</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Yellow LED</span>
+                                <span class="status-value">⚫ OFF</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Green LED</span>
+                                <span class="status-value">🟢 ON</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Camera Feed -->
+                <div class="card camera-card large">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:videocam"></iconify-icon>
+                            Live Camera Feed
+                        </h2>
+                        <div class="camera-controls">
+                            <button class="btn btn-sm btn-danger" aria-label="Toggle recording">
+                                <iconify-icon icon="material-symbols:fiber-manual-record"></iconify-icon>
+                            </button>
+                            <button class="btn btn-sm btn-primary" aria-label="Take snapshot">
+                                <iconify-icon icon="material-symbols:photo-camera"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="camera-container">
+                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                                📹 Camera Feed
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Face Recognition Results -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:face-retouching-natural"></iconify-icon>
+                            Face Recognition
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <p class="text-sm text-gray-700" style="margin-bottom: var(--space-3);">Latest face recognition results:</p>
+                        <div class="face-results">
+                            <div class="event-item known">
+                                <strong>✅ Face 1: KNOWN</strong> - John Doe
+                                <br>
+                                <small>Confidence: 95.2% | Distance: 0.35</small>
+                            </div>
+                            <div class="event-item unknown" style="margin-top: var(--space-2);">
+                                <strong>❓ Face 2: UNKNOWN</strong>
+                                <br>
+                                <small>Confidence: 0.0% | No match found</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Events -->
+                <div class="card events-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:history"></iconify-icon>
+                            Recent Events
+                        </h2>
+                        <button class="btn btn-sm btn-secondary">
+                            <iconify-icon icon="material-symbols:refresh"></iconify-icon>
+                        </button>
+                    </div>
+                    <div class="card-content">
+                        <div class="event-list">
+                            <div class="event-item known">
+                                <strong>✅ KNOWN VISITOR</strong>
+                                <span class="event-time">2024-01-15 14:32:15</span>
+                                <div style="margin-top: var(--space-2); font-size: var(--text-sm);">
+                                    Faces: John Doe
+                                </div>
+                            </div>
+                            <div class="event-item unknown">
+                                <strong>❓ UNKNOWN VISITOR</strong>
+                                <span class="event-time">2024-01-15 14:15:42</span>
+                            </div>
+                            <div class="event-item">
+                                <strong>🔔 DOORBELL PRESSED</strong>
+                                <span class="event-time">2024-01-15 13:45:23</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Known Faces Management -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:group"></iconify-icon>
+                            Known Faces
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="known-faces-grid">
+                            <div class="known-face-card">
+                                <div style="width: 100%; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: var(--radius-md); margin-bottom: var(--space-3); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">
+                                    👤
+                                </div>
+                                <span class="name">John Doe</span>
+                                <button class="btn btn-danger btn-sm" style="width: 100%;">
+                                    <iconify-icon icon="material-symbols:delete-outline"></iconify-icon>
+                                    Remove
+                                </button>
+                            </div>
+                            <div class="known-face-card">
+                                <div style="width: 100%; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: var(--radius-md); margin-bottom: var(--space-3); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">
+                                    👤
+                                </div>
+                                <span class="name">Jane Smith</span>
+                                <button class="btn btn-danger btn-sm" style="width: 100%;">
+                                    <iconify-icon icon="material-symbols:delete-outline"></iconify-icon>
+                                    Remove
+                                </button>
+                            </div>
+                            <div class="known-face-card">
+                                <div style="width: 100%; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: var(--radius-md); margin-bottom: var(--space-3); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">
+                                    👤
+                                </div>
+                                <span class="name">Bob Johnson</span>
+                                <button class="btn btn-danger btn-sm" style="width: 100%;">
+                                    <iconify-icon icon="material-symbols:delete-outline"></iconify-icon>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Logs -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <iconify-icon icon="material-symbols:terminal"></iconify-icon>
+                            System Logs
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="log-container">
+[2024-01-15 14:32:15] INFO: Face recognition completed - Known person detected
+[2024-01-15 14:32:14] INFO: Processing frame from camera
+[2024-01-15 14:32:13] INFO: Doorbell triggered by GPIO event
+[2024-01-15 14:15:42] WARNING: Unknown person detected
+[2024-01-15 14:15:40] INFO: Face detection initiated
+[2024-01-15 13:45:23] INFO: Doorbell pressed
+[2024-01-15 13:00:00] INFO: System started successfully
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Simple mobile nav toggle script -->
+    <script>
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        if (toggleBtn && sidebar && overlay) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+        
+        // Demo notification
+        setTimeout(() => {
+            const notification = document.createElement('div');
+            notification.className = 'notification success show';
+            notification.innerHTML = `
+                <div class="notification-icon">✓</div>
+                <div class="notification-content">
+                    <div class="notification-title">Dashboard Loaded</div>
+                    <div class="notification-message">Enhanced UI is ready to use!</div>
+                </div>
+                <button class="notification-close">×</button>
+            `;
+            document.body.appendChild(notification);
+            
+            notification.querySelector('.notification-close').addEventListener('click', () => {
+                notification.classList.remove('show');
+                notification.classList.add('hide');
+                setTimeout(() => notification.remove(), 300);
+            });
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                notification.classList.add('hide');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }, 1000);
+    </script>
+</body>
+</html>
