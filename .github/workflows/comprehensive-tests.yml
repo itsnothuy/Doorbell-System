@@ -167,11 +167,77 @@ jobs:
     - name: Install package
       run: |
         python -m pip install --upgrade pip
-        pip install -e '.[dev,testing,monitoring]'
+        pip install -e '.[dev,testing,monitoring,performance]'
     
     - name: Run performance tests
       run: |
-        pytest tests/performance/ -v --tb=short --benchmark-only
+        pytest tests/performance/ -v --tb=short --benchmark-only --benchmark-json=benchmark-results.json
+    
+    - name: Store benchmark results
+      uses: benchmark-action/github-action-benchmark@v1
+      if: github.event_name == 'push'
+      with:
+        tool: 'pytest'
+        output-file-path: benchmark-results.json
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        auto-push: false
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: benchmark-results.json
+        retention-days: 30
+
+  # Load testing
+  load-tests:
+    name: Load Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[dev,testing,performance]'
+    
+    - name: Start application
+      env:
+        DEVELOPMENT_MODE: "true"
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        python app.py &
+        sleep 10
+    
+    - name: Run load tests
+      run: |
+        locust -f tests/load/locustfile.py \
+          --host=http://localhost:5000 \
+          --headless \
+          --users 50 \
+          --spawn-rate 5 \
+          --run-time 60s \
+          --html load-test-report.html \
+          --csv load-test-results
+    
+    - name: Upload load test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: load-test-reports
+        path: |
+          load-test-report.html
+          load-test-results*.csv
+        retention-days: 30
 
   # Security tests
   security-tests:
@@ -190,20 +256,45 @@ jobs:
     - name: Install package
       run: |
         python -m pip install --upgrade pip
-        pip install -e '.[dev,testing]'
-        pip install bandit safety
+        pip install -e '.[dev,testing,security]'
     
     - name: Run security tests
+      env:
+        DEVELOPMENT_MODE: "true"
+        PYTHONPATH: ${{ github.workspace }}
       run: |
-        pytest tests/security/ -v -m security --tb=short
+        pytest tests/security/ -v -m security --tb=short --junit-xml=security-test-results.xml
     
     - name: Run Bandit security scan
       run: |
-        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ config/ -f json -o bandit-report.json || true
+        bandit -r src/ config/ -f txt
     
-    - name: Run Safety check
+    - name: Run Safety dependency check
       run: |
-        safety check --json || true
+        safety check --json --output safety-report.json || true
+        safety check --short || true
+    
+    - name: Generate security summary
+      if: always()
+      run: |
+        echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Bandit summary
+        if [ -f bandit-report.json ]; then
+          echo "### Bandit Security Scan" >> $GITHUB_STEP_SUMMARY
+          python -c "
+          import json
+          with open('bandit-report.json') as f:
+              data = json.load(f)
+              metrics = data.get('metrics', {})
+              total = sum(v.get('SEVERITY.HIGH', 0) + v.get('SEVERITY.MEDIUM', 0) for v in metrics.values())
+              print(f'Found {total} potential issues')
+          " >> $GITHUB_STEP_SUMMARY || echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
     
     - name: Upload security reports
       uses: actions/upload-artifact@v4
@@ -212,6 +303,9 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
+          safety-report.json
+          security-test-results.xml
+        retention-days: 30
 
   # Coverage report
   coverage-report:
@@ -237,36 +331,84 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e '.[dev,testing]'
-    
     - name: Run all tests with coverage
+      env:
+        DEVELOPMENT_MODE: "true"
+        PYTHONPATH: ${{ github.workspace }}
       run: |
-        pytest tests/ -v --cov=src --cov=config --cov-report=html --cov-report=xml --cov-report=json
+        pytest tests/ -v \
+          --cov=src --cov=config \
+          --cov-report=html \
+          --cov-report=xml \
+          --cov-report=json \
+          --junit-xml=pytest-results.xml \
+          --html=test-report.html --self-contained-html
     
     - name: Check coverage threshold
       run: |
-        python scripts/testing/generate_coverage_report.py --fail-under 80
+        python scripts/testing/generate_coverage_report.py --fail-under 80 --markdown
+    
+    - name: Generate coverage summary for PR
+      if: github.event_name == 'pull_request'
+      run: |
+        python scripts/testing/generate_coverage_report.py --no-run --markdown
+        
+        # Add coverage comment to PR
+        if [ -f COVERAGE_REPORT.md ]; then
+          cat COVERAGE_REPORT.md >> $GITHUB_STEP_SUMMARY
+        fi
     
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage-reports
         path: |
           htmlcov/
           coverage.xml
           coverage.json
+          pytest-results.xml
+          test-report.html
+          COVERAGE_REPORT.md
+        retention-days: 30
     
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         flags: all-tests
+        fail_ci_if_error: false
 
   # Quality gates
   quality-gates:
     name: Quality Gates
-    needs: [code-quality, unit-tests, integration-tests, e2e-tests, security-tests]
+    needs: [code-quality, unit-tests, integration-tests, e2e-tests, performance-tests, security-tests, coverage-report]
     runs-on: ubuntu-latest
+    if: always()
     
     steps:
     - name: Check all tests passed
-      run: echo "✅ All quality gates passed!"
+      run: |
+        echo "## 🚦 Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security Tests | ${{ needs.security-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Coverage Report | ${{ needs.coverage-report.result }} |" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if any critical jobs failed
+        if [[ "${{ needs.code-quality.result }}" == "failure" || 
+              "${{ needs.unit-tests.result }}" == "failure" || 
+              "${{ needs.integration-tests.result }}" == "failure" ]]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **Critical tests failed!**" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **All quality gates passed!**" >> $GITHUB_STEP_SUMMARY

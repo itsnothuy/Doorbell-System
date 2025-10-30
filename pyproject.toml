@@ -109,6 +109,33 @@ testing = [
     "faker>=19.6.0",
     "freezegun>=1.2.0",
     "docker>=7.0.0",  # For containerized test environments
+    "pytest-html>=3.2.0",            # HTML test reports
+    "pytest-timeout>=2.1.0",         # Test timeout handling
+    "pytest-randomly>=3.12.0",       # Random test ordering
+    "hypothesis>=6.82.0",            # Property-based testing
+    "locust>=2.16.1",                # Load testing framework
+    "memory-profiler>=0.61.0",       # Memory profiling
+]
+
+# E2E Testing
+e2e = [
+    "playwright>=1.40.0",            # Browser automation
+    "selenium>=4.16.0",              # Alternative browser automation
+    "pytest-playwright>=0.4.3",      # Playwright pytest integration
+]
+
+# Performance Testing
+performance = [
+    "locust>=2.16.1",                # Load testing
+    "memory-profiler>=0.61.0",       # Memory profiling
+    "py-spy>=0.3.14",                # Python profiling
+]
+
+# Security Testing
+security = [
+    "bandit[toml]>=1.7.5",           # Security linting (already in dev)
+    "safety>=2.3.4",                 # Dependency vulnerability scanning
+    "semgrep>=1.50.0",               # Static security analysis
 ]
 
 # Documentation
@@ -121,7 +148,7 @@ docs = [
 
 # All extras combined
 all = [
-    "doorbell-security-system[dev,pi,monitoring,production,testing,docs]"
+    "doorbell-security-system[dev,pi,monitoring,production,testing,e2e,performance,security,docs]"
 ]
 
 [project.urls]
@@ -323,6 +350,11 @@ markers = [
     "hardware: marks tests that require hardware (Raspberry Pi)",
     "network: marks tests that require network access",
     "gpu: marks tests that require GPU acceleration",
+    "e2e: marks end-to-end tests requiring full system",
+    "performance: marks performance benchmark tests",
+    "security: marks security-focused tests",
+    "load: marks load testing scenarios",
+    "property: marks property-based tests using Hypothesis",
 ]
 filterwarnings = [
     "error",

@@ -2,7 +2,18 @@
 
 ## 🧪 Testing Strategy Overview
 
-The Doorbell Security System employs a comprehensive testing strategy to ensure reliability, security, and performance across different platforms and configurations.
+The Doorbell Security System employs a comprehensive testing strategy to ensure reliability, security, and performance across different platforms and configurations. This guide covers all aspects of testing from unit tests to load testing and CI/CD automation.
+
+## 📋 Table of Contents
+
+1. [Testing Principles](#testing-principles)
+2. [Test Structure](#test-structure)
+3. [Test Types](#test-types)
+4. [Running Tests](#running-tests)
+5. [Test Utilities](#test-utilities)
+6. [CI/CD Integration](#cicd-integration)
+7. [Coverage Requirements](#coverage-requirements)
+8. [Best Practices](#best-practices)
 
 ## 📋 Testing Principles
 
@@ -14,11 +25,12 @@ The Doorbell Security System employs a comprehensive testing strategy to ensure 
 4. **Hardware Abstraction**: Test with and without hardware
 5. **Security First**: Security testing integrated throughout
 6. **Performance Aware**: Performance regression prevention
+7. **Property-Based Testing**: Verify properties hold for wide input ranges
 
 ### Testing Philosophy
 
 - **Fail Fast**: Catch issues early in development
-- **Comprehensive Coverage**: High test coverage across all components
+- **Comprehensive Coverage**: High test coverage across all components (target: 80%+)
 - **Real-world Scenarios**: Test realistic usage patterns
 - **Edge Cases**: Test boundary conditions and error scenarios
 - **Backwards Compatibility**: Ensure existing functionality remains stable
@@ -33,77 +45,63 @@ tests/
 │   ├── test_face_manager.py
 │   ├── test_camera_handler.py
 │   ├── test_gpio_handler.py
-│   ├── test_telegram_notifier.py
-│   ├── test_web_interface.py
-│   └── test_doorbell_security.py
+│   └── ...
 ├── integration/            # Integration tests for component interactions
-│   ├── test_face_recognition_workflow.py
-│   ├── test_doorbell_workflow.py
-│   ├── test_api_integration.py
-│   └── test_telegram_integration.py
+│   ├── test_complete_integration.py
+│   ├── test_orchestrator_integration.py
+│   └── test_end_to_end_pipeline.py
+├── e2e/                    # End-to-end browser and system tests
+│   ├── test_doorbell_scenarios.py
+│   └── test_web_interface_playwright.py
 ├── performance/            # Performance and benchmark tests
-│   ├── test_face_recognition_performance.py
-│   ├── test_memory_usage.py
-│   └── test_startup_time.py
-├── security/              # Security-specific tests
-│   ├── test_input_validation.py
-│   ├── test_authentication.py
-│   └── test_data_protection.py
-├── e2e/                   # End-to-end tests
-│   ├── test_full_workflow.py
-│   └── test_web_interface_e2e.py
-├── fixtures/              # Test data and fixtures
-│   ├── images/
-│   ├── test_data.py
-│   └── mock_data.py
-├── helpers/               # Test utilities and helpers
-│   ├── test_helpers.py
-│   ├── mock_hardware.py
-│   └── test_factories.py
-└── conftest.py           # Pytest configuration and shared fixtures
+│   ├── recognition_bench.py
+│   └── test_communication_performance.py
+├── security/               # Security-specific tests
+│   └── test_input_validation.py
+├── load/                   # Load testing scenarios
+│   ├── locustfile.py
+│   └── test_stress_scenarios.py
+├── streaming/              # Streaming-specific tests
+├── framework/              # Test framework utilities
+│   ├── orchestrator.py
+│   ├── performance.py
+│   └── environments.py
+├── utils/                  # Test utilities and helpers
+│   └── property_based_tests.py
+├── fixtures/               # Test data and fixtures
+├── baselines/              # Baseline data for comparison
+└── conftest.py            # Pytest configuration and shared fixtures
 ```
 
 ## 🔧 Test Configuration
 
-### pytest Configuration (`pytest.ini`)
+### pytest Configuration (`pyproject.toml`)
 
-```ini
-[tool:pytest]
-testpaths = tests
-python_files = test_*.py
-python_classes = Test*
-python_functions = test_*
-addopts = 
-    --verbose
-    --tb=short
-    --cov=src
-    --cov=config
-    --cov-report=html:htmlcov
-    --cov-report=term-missing
-    --cov-report=xml
-    --cov-fail-under=85
-    --durations=10
-    --strict-markers
-    --strict-config
-markers =
-    unit: Unit tests
-    integration: Integration tests
-    performance: Performance tests
-    security: Security tests
-    e2e: End-to-end tests
-    slow: Slow tests (> 5 seconds)
-    hardware: Tests requiring hardware
-    network: Tests requiring network access
-    pi: Raspberry Pi specific tests
-    macos: macOS specific tests
-    linux: Linux specific tests
-filterwarnings =
-    error
-    ignore::UserWarning
-    ignore::DeprecationWarning:tensorflow.*
+```toml
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "performance: Performance tests",
+    "security: Security tests",
+    "load: Load testing scenarios",
+    "property: Property-based tests",
+    "slow: Slow tests (> 5 seconds)",
+    "hardware: Tests requiring hardware",
+    "network: Tests requiring network access",
+    "gpu: Tests requiring GPU",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
 ```
 
-### Test Environment Setup
+## 🧩 Test Types
 
 ```python
 # conftest.py
@@ -1275,3 +1273,310 @@ pytest --cov=src --cov-fail-under=90
 ---
 
 This comprehensive testing guide ensures that the Doorbell Security System maintains high quality, security, and performance standards through automated testing at all levels of the application stack.
+## 🛠️ Test Utilities and Scripts
+
+### Unified Test Runner
+
+The `scripts/testing/run_tests.py` script provides a unified interface for running all test types:
+
+```bash
+# Run all tests
+python scripts/testing/run_tests.py --all
+
+# Run specific test suites
+python scripts/testing/run_tests.py --unit --coverage
+python scripts/testing/run_tests.py --integration --verbose
+python scripts/testing/run_tests.py --e2e
+python scripts/testing/run_tests.py --performance --benchmark
+python scripts/testing/run_tests.py --security
+python scripts/testing/run_tests.py --load --users 100 --runtime 120
+
+# Quick mode (skip slow tests)
+python scripts/testing/run_tests.py --all --quick
+```
+
+**Features**:
+- Runs all test types (unit, integration, E2E, performance, security, load)
+- Generates comprehensive coverage reports
+- Provides detailed test summaries
+- Supports verbose output for debugging
+
+### Coverage Report Generator
+
+The `scripts/testing/generate_coverage_report.py` script provides enhanced coverage analysis:
+
+```bash
+# Generate coverage report and run tests
+python scripts/testing/generate_coverage_report.py
+
+# Check if coverage meets threshold
+python scripts/testing/generate_coverage_report.py --fail-under 80
+
+# Generate markdown report
+python scripts/testing/generate_coverage_report.py --markdown
+
+# Analyze existing coverage without running tests
+python scripts/testing/generate_coverage_report.py --no-run --markdown
+```
+
+**Features**:
+- Multiple output formats (text, markdown, JSON)
+- Coverage threshold checking
+- Package-level coverage breakdown
+- Coverage badges for documentation
+
+### Property-Based Testing Utilities
+
+The `tests/utils/property_based_tests.py` module provides custom Hypothesis strategies:
+
+```python
+from tests.utils.property_based_tests import (
+    valid_image_array,
+    face_encoding_vector,
+    detection_confidence,
+    bounding_box
+)
+
+@given(valid_image_array())
+def test_image_processing(image):
+    # Test will run with many different valid images
+    result = process_image(image)
+    assert result is not None
+```
+
+**Available Strategies**:
+- `valid_image_array()`: Generate valid image arrays
+- `face_encoding_vector()`: Generate 128D face encoding vectors
+- `detection_confidence()`: Generate confidence values (0.0-1.0)
+- `recognition_threshold()`: Generate threshold values (0.1-0.9)
+- `bounding_box()`: Generate valid bounding boxes
+
+## 🔄 CI/CD Integration
+
+### Automated Testing Workflow
+
+The comprehensive test suite runs automatically on:
+- **Pull Requests**: To main/develop branches
+- **Pushes**: To main/develop branches
+- **Schedule**: Nightly at 2 AM UTC
+- **Manual**: Via workflow_dispatch
+
+### Workflow Jobs
+
+1. **Code Quality** (`code-quality`)
+   - Black formatting check
+   - Ruff linting
+   - isort import sorting
+
+2. **Unit Tests** (`unit-tests`)
+   - Python 3.10, 3.11, 3.12
+   - Coverage reporting
+
+3. **Integration Tests** (`integration-tests`)
+   - Component interaction testing
+   - Database integration
+
+4. **E2E Tests** (`e2e-tests`)
+   - Browser automation with Playwright
+   - Complete workflow testing
+
+5. **Performance Tests** (`performance-tests`)
+   - Benchmark execution
+   - Performance regression detection
+   - Result comparison
+
+6. **Load Tests** (`load-tests`)
+   - Locust load testing
+   - 50 users, 60-second runtime
+   - HTML and CSV reports
+
+7. **Security Tests** (`security-tests`)
+   - Input validation tests
+   - Bandit security scan
+   - Safety dependency check
+
+8. **Coverage Report** (`coverage-report`)
+   - Comprehensive coverage analysis
+   - Markdown report generation
+   - Threshold checking (80%)
+
+9. **Quality Gates** (`quality-gates`)
+   - Aggregates all test results
+   - Provides comprehensive summary
+   - Fails if critical tests fail
+
+### Test Artifacts
+
+All test runs produce artifacts stored for 30 days:
+- Coverage reports (HTML, XML, JSON, Markdown)
+- Test results (JUnit XML, HTML)
+- Security reports (Bandit JSON, Safety JSON)
+- Performance benchmarks (JSON)
+- Load test reports (HTML, CSV)
+
+### PR Integration
+
+Pull requests automatically receive:
+- Coverage summary in PR comments
+- Test result summary
+- Links to detailed reports
+- Security scan results
+
+## 📚 Best Practices
+
+### Writing Tests
+
+1. **Use descriptive names**: Test names should describe what they verify
+   ```python
+   # Good
+   def test_face_recognition_rejects_low_confidence_matches(self):
+       pass
+       
+   # Bad
+   def test_face_rec(self):
+       pass
+   ```
+
+2. **Follow AAA pattern**: Arrange, Act, Assert
+   ```python
+   def test_face_encoding_generation(self):
+       # Arrange
+       image = load_test_image("john_doe.jpg")
+       
+       # Act
+       encoding = face_manager.generate_encoding(image)
+       
+       # Assert
+       assert encoding is not None
+       assert len(encoding) == 128
+   ```
+
+3. **Use fixtures for setup**: Avoid code duplication
+   ```python
+   @pytest.fixture
+   def sample_face_image(self):
+       return load_test_image("sample_face.jpg")
+   
+   def test_detection(self, sample_face_image):
+       result = detector.detect_faces(sample_face_image)
+       assert len(result) > 0
+   ```
+
+4. **Mock external dependencies**: Keep tests isolated
+   ```python
+   @patch('src.telegram_notifier.TelegramBot')
+   def test_notification_sending(self, mock_telegram):
+       mock_telegram.send_message.return_value = True
+       
+       result = notifier.send_alert("Test")
+       assert result is True
+   ```
+
+5. **Test edge cases**: Include boundary conditions
+   ```python
+   @pytest.mark.parametrize("confidence", [0.0, 0.5, 0.99, 1.0])
+   def test_confidence_thresholds(self, confidence):
+       result = is_confident_match(confidence, threshold=0.6)
+       expected = confidence >= 0.6
+       assert result == expected
+   ```
+
+### Test Organization
+
+1. **Group related tests**: Use test classes
+   ```python
+   class TestFaceRecognition:
+       def test_encoding_generation(self):
+           pass
+       
+       def test_face_matching(self):
+           pass
+   ```
+
+2. **Use markers appropriately**: Tag tests for selective execution
+   ```python
+   @pytest.mark.slow
+   @pytest.mark.integration
+   def test_full_pipeline(self):
+       pass
+   ```
+
+3. **Keep tests independent**: Tests should not depend on each other
+   ```python
+   # Good - each test is independent
+   def test_add_face(self):
+       face_manager.add_face("john", encoding)
+       assert "john" in face_manager.known_faces
+   
+   # Bad - depends on previous test
+   def test_remove_face(self):
+       # Assumes john was added in previous test
+       face_manager.remove_face("john")
+       assert "john" not in face_manager.known_faces
+   ```
+
+### Performance Considerations
+
+1. **Use session-scoped fixtures** for expensive setup
+   ```python
+   @pytest.fixture(scope="session")
+   def trained_model(self):
+       return load_expensive_model()
+   ```
+
+2. **Run slow tests selectively**
+   ```bash
+   pytest -m "not slow"  # Skip slow tests in development
+   pytest -m slow  # Run only slow tests before commit
+   ```
+
+3. **Parallelize when possible**
+   ```bash
+   pytest tests/ -n auto  # Use all available cores
+   ```
+
+### Debugging Tests
+
+1. **Use pytest verbosity**:
+   ```bash
+   pytest tests/test_face_manager.py -v  # Verbose
+   pytest tests/test_face_manager.py -vv  # Very verbose
+   ```
+
+2. **Show print statements**:
+   ```bash
+   pytest tests/test_face_manager.py -s
+   ```
+
+3. **Drop into debugger on failure**:
+   ```bash
+   pytest tests/test_face_manager.py --pdb
+   ```
+
+4. **Run specific tests**:
+   ```bash
+   pytest tests/test_face_manager.py::TestFaceManager::test_encoding
+   ```
+
+## 🔗 Additional Resources
+
+- [pytest Documentation](https://docs.pytest.org/)
+- [Hypothesis Documentation](https://hypothesis.readthedocs.io/)
+- [Playwright Python Documentation](https://playwright.dev/python/)
+- [Locust Documentation](https://docs.locust.io/)
+- [Coverage.py Documentation](https://coverage.readthedocs.io/)
+- [Test Scripts README](../scripts/testing/README.md)
+
+## 📝 Summary
+
+This comprehensive testing framework ensures:
+- ✅ High code quality through multiple testing layers
+- ✅ Fast feedback with unit tests
+- ✅ Confidence in integrations with integration tests
+- ✅ Validated user workflows with E2E tests
+- ✅ Performance tracking with benchmarks
+- ✅ Security validation with vulnerability scanning
+- ✅ Scalability verification with load testing
+- ✅ Automated quality gates in CI/CD
+
+For questions or issues with testing, please refer to the [Contributing Guide](CONTRIBUTING.md) or open an issue on GitHub.
