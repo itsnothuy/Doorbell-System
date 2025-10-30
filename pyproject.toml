@@ -108,6 +108,7 @@ testing = [
     "factory-boy>=3.3.0",
     "faker>=19.6.0",
     "freezegun>=1.2.0",
+    "docker>=7.0.0",  # For containerized test environments
 ]
 
 # Documentation
