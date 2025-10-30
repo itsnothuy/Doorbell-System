@@ -1430,7 +1430,6 @@ Pull requests automatically receive:
    ```python
    # Good
    def test_face_recognition_rejects_low_confidence_matches(self):
-       # Test implementation here
        pass
        
    # Bad
