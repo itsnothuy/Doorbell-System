@@ -12,9 +12,10 @@ import statistics
 import sys
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 try:
     import psutil
@@ -22,6 +23,7 @@ try:
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
+
     # Create mock psutil for environments where it's not available
     class MockProcess:
         def memory_info(self) -> Any:
@@ -68,7 +70,7 @@ class PerformanceBaseline:
     std_cpu: float
     sample_count: int
     timestamp: float
-    environment: Dict[str, Any]
+    environment: dict[str, Any]
 
 
 @dataclass
@@ -80,7 +82,7 @@ class PerformanceMetrics:
     memory_avg: float
     cpu_peak: float
     cpu_avg: float
-    custom_metrics: Dict[str, float] = field(default_factory=dict)
+    custom_metrics: dict[str, float] = field(default_factory=dict)
 
 
 class PerformanceRegressor:
@@ -89,7 +91,7 @@ class PerformanceRegressor:
     def __init__(self, baseline_path: Path = Path("tests/baselines")):
         self.baseline_path = baseline_path
         self.baseline_path.mkdir(parents=True, exist_ok=True)
-        self.baselines: Dict[str, PerformanceBaseline] = {}
+        self.baselines: dict[str, PerformanceBaseline] = {}
         self._load_baselines()
 
     def measure_performance(
@@ -108,8 +110,8 @@ class PerformanceRegressor:
         except Exception:
             start_memory = 0
 
-        cpu_samples: List[float] = []
-        memory_samples: List[float] = []
+        cpu_samples: list[float] = []
+        memory_samples: list[float] = []
 
         # Create monitoring task
         monitoring = True
@@ -128,7 +130,7 @@ class PerformanceRegressor:
 
         try:
             # Execute test function
-            result = test_func(*args, **kwargs)
+            test_func(*args, **kwargs)
         finally:
             monitoring = False
             monitor_thread.join(timeout=1.0)
@@ -160,7 +162,7 @@ class PerformanceRegressor:
         test_name: str,
         metrics: PerformanceMetrics,
         threshold: float = 0.15,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Check for performance regression against baseline."""
         if test_name not in self.baselines:
             return {
@@ -172,12 +174,8 @@ class PerformanceRegressor:
         baseline = self.baselines[test_name]
 
         # Check duration regression
-        duration_change = (
-            (metrics.duration - baseline.mean_duration) / baseline.mean_duration
-        )
-        memory_change = (
-            (metrics.memory_peak - baseline.mean_memory) / baseline.mean_memory
-        )
+        duration_change = (metrics.duration - baseline.mean_duration) / baseline.mean_duration
+        memory_change = (metrics.memory_peak - baseline.mean_memory) / baseline.mean_memory
         cpu_change = (metrics.cpu_peak - baseline.mean_cpu) / baseline.mean_cpu
 
         regressions = []
@@ -202,9 +200,7 @@ class PerformanceRegressor:
             "threshold": threshold,
         }
 
-    def update_baseline(
-        self, test_name: str, metrics: List[PerformanceMetrics]
-    ) -> None:
+    def update_baseline(self, test_name: str, metrics: list[PerformanceMetrics]) -> None:
         """Update performance baseline with new measurements."""
         if not metrics:
             return
@@ -265,15 +261,13 @@ class PerformanceRegressor:
         baseline_file.write_text(json.dumps(data, indent=2))
         logger.info(f"Saved {len(self.baselines)} performance baselines")
 
-    def _get_environment_info(self) -> Dict[str, Any]:
+    def _get_environment_info(self) -> dict[str, Any]:
         """Get current environment information."""
         return {
             "python_version": sys.version,
             "platform": platform.platform(),
             "cpu_count": psutil.cpu_count() if PSUTIL_AVAILABLE else 1,
-            "memory_total": (
-                psutil.virtual_memory().total if PSUTIL_AVAILABLE else 0
-            ),
+            "memory_total": (psutil.virtual_memory().total if PSUTIL_AVAILABLE else 0),
             "timestamp": time.time(),
         }
 
@@ -285,7 +279,7 @@ class PerformanceRegressor:
         warmup: int = 2,
         *args: Any,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Benchmark a function with multiple iterations.
 
@@ -300,9 +294,7 @@ class PerformanceRegressor:
         Returns:
             Dictionary with benchmark results and regression analysis
         """
-        logger.info(
-            f"Benchmarking {test_name} with {warmup} warmup and {iterations} iterations"
-        )
+        logger.info(f"Benchmarking {test_name} with {warmup} warmup and {iterations} iterations")
 
         # Warmup runs
         for i in range(warmup):

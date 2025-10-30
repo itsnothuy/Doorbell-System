@@ -5,13 +5,12 @@ Test Environment Management
 Containerized test isolation and cross-platform environment setup.
 """
 
-import asyncio
 import json
 import logging
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +28,14 @@ class TestEnvironmentManager:
     """Manage test environments and isolation."""
 
     def __init__(self) -> None:
-        self.docker_client: Optional[Any] = None
-        self.temp_dirs: List[Path] = []
-        self.active_containers: List[str] = []
+        self.docker_client: Any | None = None
+        self.temp_dirs: list[Path] = []
+        self.active_containers: list[str] = []
 
-    async def setup_docker_environment(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def setup_docker_environment(self, config: dict[str, Any]) -> dict[str, Any]:
         """Setup Docker-based test environment."""
         if not DOCKER_AVAILABLE:
-            raise RuntimeError(
-                "Docker library not available. Install with: pip install docker"
-            )
+            raise RuntimeError("Docker library not available. Install with: pip install docker")
 
         try:
             self.docker_client = docker.from_env()
@@ -64,9 +61,9 @@ class TestEnvironmentManager:
 
         except Exception as e:
             await self.cleanup()
-            raise RuntimeError(f"Failed to setup Docker environment: {e}")
+            raise RuntimeError(f"Failed to setup Docker environment: {e}") from e
 
-    async def setup_local_environment(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def setup_local_environment(self, config: dict[str, Any]) -> dict[str, Any]:
         """Setup local test environment with isolation."""
         # Create temporary directory structure
         temp_root = Path(tempfile.mkdtemp(prefix="doorbell_test_"))
@@ -167,16 +164,14 @@ CMD ["python", "-m", "pytest", "tests/"]
             self.docker_client.networks.create(network_name, driver="bridge")
             logger.info(f"Created test network {network_name}")
 
-    async def _start_test_services(
-        self, config: Dict[str, Any], network_name: str
-    ) -> List[str]:
+    async def _start_test_services(self, config: dict[str, Any], network_name: str) -> list[str]:
         """Start required test services in Docker."""
         # This can be extended to start database, cache, or other services
         containers = []
         logger.info("No additional test services configured")
         return containers
 
-    def _create_test_config(self, test_dirs: Dict[str, Path]) -> Dict[str, Any]:
+    def _create_test_config(self, test_dirs: dict[str, Path]) -> dict[str, Any]:
         """Create test-specific configuration."""
         return {
             "test_mode": True,
@@ -233,12 +228,12 @@ CMD ["python", "-m", "pytest", "tests/"]
 class TestEnvironmentContext:
     """Context manager for test environment setup and cleanup."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.manager = TestEnvironmentManager()
-        self.env_info: Optional[Dict[str, Any]] = None
+        self.env_info: dict[str, Any] | None = None
 
-    async def __aenter__(self) -> Dict[str, Any]:
+    async def __aenter__(self) -> dict[str, Any]:
         """Setup test environment on enter."""
         env_type = self.config.get("type", "local")
 

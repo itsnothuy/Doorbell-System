@@ -17,12 +17,12 @@ from tests.framework.orchestrator import (
 from tests.framework.performance import PerformanceMetrics, PerformanceRegressor
 
 __all__ = [
+    "PerformanceMetrics",
+    "PerformanceRegressor",
     "TestConfiguration",
     "TestEnvironment",
     "TestExecutionResult",
     "TestOrchestrator",
     "TestSuite",
     "TestSuiteResult",
-    "PerformanceMetrics",
-    "PerformanceRegressor",
 ]

@@ -5,15 +5,10 @@ Tests for Test Orchestrator Framework
 Comprehensive tests for the centralized testing framework orchestrator.
 """
 
-import asyncio
 import json
-import tempfile
 import time
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-
 from tests.framework.orchestrator import (
     TestConfiguration,
     TestEnvironment,
@@ -310,9 +305,7 @@ class TestPerformanceRegressor:
             cpu_avg=60.0,
         )
 
-        result = regressor.check_regression(
-            "test_baseline", bad_metrics, threshold=0.15
-        )
+        result = regressor.check_regression("test_baseline", bad_metrics, threshold=0.15)
         assert result["regression_detected"]
         assert len(result["regressions"]) > 0
 

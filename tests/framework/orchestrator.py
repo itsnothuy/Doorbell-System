@@ -8,13 +8,12 @@ Centralized test execution, reporting, and environment management system.
 import asyncio
 import json
 import logging
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +44,13 @@ class TestEnvironment(Enum):
 class TestConfiguration:
     """Test execution configuration."""
 
-    suites: Set[TestSuite] = field(default_factory=lambda: {TestSuite.ALL})
+    suites: set[TestSuite] = field(default_factory=lambda: {TestSuite.ALL})
     environment: TestEnvironment = TestEnvironment.LOCAL
     parallel_workers: int = 4
     timeout_seconds: int = 3600
     generate_reports: bool = True
     coverage_analysis: bool = True
-    performance_baseline: Optional[str] = None
+    performance_baseline: str | None = None
     fail_fast: bool = False
     verbose: bool = True
 
@@ -74,11 +73,11 @@ class TestResult:
     suite: TestSuite
     status: str  # "passed", "failed", "skipped", "error"
     duration: float
-    error_message: Optional[str] = None
-    stdout: Optional[str] = None
-    stderr: Optional[str] = None
-    coverage_data: Optional[Dict[str, Any]] = None
-    performance_metrics: Optional[Dict[str, float]] = None
+    error_message: str | None = None
+    stdout: str | None = None
+    stderr: str | None = None
+    coverage_data: dict[str, Any] | None = None
+    performance_metrics: dict[str, float] | None = None
 
 
 @dataclass
@@ -92,8 +91,8 @@ class TestSuiteResult:
     skipped: int
     errors: int
     duration: float
-    coverage_percentage: Optional[float] = None
-    test_results: List[TestResult] = field(default_factory=list)
+    coverage_percentage: float | None = None
+    test_results: list[TestResult] = field(default_factory=list)
 
 
 @dataclass
@@ -104,11 +103,11 @@ class TestExecutionResult:
     start_time: float
     end_time: float
     total_duration: float
-    suite_results: List[TestSuiteResult] = field(default_factory=list)
+    suite_results: list[TestSuiteResult] = field(default_factory=list)
     overall_status: str = "unknown"
-    coverage_report_path: Optional[Path] = None
-    performance_report_path: Optional[Path] = None
-    html_report_path: Optional[Path] = None
+    coverage_report_path: Path | None = None
+    performance_report_path: Path | None = None
+    html_report_path: Path | None = None
 
 
 class TestOrchestrator:
@@ -146,9 +145,7 @@ class TestOrchestrator:
                 suite_results.append(result)
 
                 if self.config.fail_fast and result.failed > 0:
-                    logger.error(
-                        f"Fail-fast enabled, stopping due to {suite.value} failures"
-                    )
+                    logger.error(f"Fail-fast enabled, stopping due to {suite.value} failures")
                     break
 
             end_time = time.time()
@@ -213,7 +210,7 @@ class TestOrchestrator:
             suite, duration, process.returncode, stdout.decode(), stderr.decode()
         )
 
-    def _build_pytest_command(self, suite: TestSuite) -> List[str]:
+    def _build_pytest_command(self, suite: TestSuite) -> list[str]:
         """Build pytest command for specific suite."""
         cmd = ["python", "-m", "pytest"]
 
@@ -394,7 +391,7 @@ class TestOrchestrator:
         total_passed = sum(r.passed for r in result.suite_results)
         total_failed = sum(r.failed for r in result.suite_results)
         total_skipped = sum(r.skipped for r in result.suite_results)
-        total_errors = sum(r.errors for r in result.suite_results)
+        sum(r.errors for r in result.suite_results)
 
         # Generate suite rows
         suite_rows = ""
@@ -529,7 +526,7 @@ class TestOrchestrator:
                     <p>Environment: {result.configuration.environment.value}</p>
                     <p>Status: <span class="status {result.overall_status}">{result.overall_status.upper()}</span></p>
                 </div>
-                
+
                 <div class="summary">
                     <div class="metric">
                         <h3>Total Tests</h3>
@@ -552,7 +549,7 @@ class TestOrchestrator:
                         <div class="value">{result.total_duration:.1f}s</div>
                     </div>
                 </div>
-                
+
                 <div class="suites">
                     <h2>Test Suite Results</h2>
                     <table>
@@ -623,9 +620,7 @@ class TestOrchestrator:
 
         # Copy HTML coverage reports to output directory
         for suite_result in result.suite_results:
-            suite_coverage_dir = (
-                self.config.output_dir / f"coverage_{suite_result.suite.value}"
-            )
+            suite_coverage_dir = self.config.output_dir / f"coverage_{suite_result.suite.value}"
             if suite_coverage_dir.exists():
                 logger.info(
                     f"Coverage report available for {suite_result.suite.value}: {suite_coverage_dir}"
@@ -643,9 +638,7 @@ class TestOrchestrator:
                 {
                     "name": sr.suite.value,
                     "duration": sr.duration,
-                    "tests_per_second": (
-                        sr.total_tests / sr.duration if sr.duration > 0 else 0
-                    ),
+                    "tests_per_second": (sr.total_tests / sr.duration if sr.duration > 0 else 0),
                 }
                 for sr in result.suite_results
             ],
@@ -657,7 +650,7 @@ class TestOrchestrator:
         logger.info(f"Generated performance report: {perf_path}")
         return perf_path
 
-    def _determine_overall_status(self, suite_results: List[TestSuiteResult]) -> str:
+    def _determine_overall_status(self, suite_results: list[TestSuiteResult]) -> str:
         """Determine overall test execution status."""
         if not suite_results:
             return "no_tests"
@@ -683,9 +676,7 @@ async def main() -> int:
     """CLI entry point for test orchestrator."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Doorbell Security System Test Orchestrator"
-    )
+    parser = argparse.ArgumentParser(description="Doorbell Security System Test Orchestrator")
     parser.add_argument(
         "--suites",
         nargs="+",
@@ -699,21 +690,11 @@ async def main() -> int:
         default="local",
         help="Test environment",
     )
-    parser.add_argument(
-        "--workers", type=int, default=4, help="Parallel workers"
-    )
-    parser.add_argument(
-        "--timeout", type=int, default=3600, help="Timeout in seconds"
-    )
-    parser.add_argument(
-        "--no-reports", action="store_true", help="Skip report generation"
-    )
-    parser.add_argument(
-        "--no-coverage", action="store_true", help="Skip coverage analysis"
-    )
-    parser.add_argument(
-        "--fail-fast", action="store_true", help="Stop on first failure"
-    )
+    parser.add_argument("--workers", type=int, default=4, help="Parallel workers")
+    parser.add_argument("--timeout", type=int, default=3600, help="Timeout in seconds")
+    parser.add_argument("--no-reports", action="store_true", help="Skip report generation")
+    parser.add_argument("--no-coverage", action="store_true", help="Skip coverage analysis")
+    parser.add_argument("--fail-fast", action="store_true", help="Stop on first failure")
     parser.add_argument("--quiet", action="store_true", help="Quiet output")
     parser.add_argument(
         "--output-dir",
@@ -749,7 +730,7 @@ async def main() -> int:
 
     # Print summary
     print(f"\n{'=' * 60}")
-    print(f"TEST EXECUTION COMPLETE")
+    print("TEST EXECUTION COMPLETE")
     print(f"{'=' * 60}")
     print(f"Status: {result.overall_status.upper()}")
     print(f"Duration: {result.total_duration:.2f} seconds")

@@ -2,13 +2,21 @@
 
 ## Overview
 
-Comprehensive testing framework for the Doorbell Security System with 95%+ code coverage target, organized following the testing pyramid architecture.
+Comprehensive testing framework for the Doorbell Security System with 95%+ code coverage target, organized following the testing pyramid architecture. Includes a centralized test orchestrator for unified test execution, reporting, and environment management.
 
 ## Test Structure
 
 ```
 tests/
 ├── conftest.py                    # Enhanced pytest configuration with fixtures
+├── framework/                     # Test orchestrator framework (NEW)
+│   ├── __init__.py               # Framework exports
+│   ├── orchestrator.py           # Centralized test execution orchestrator
+│   ├── performance.py            # Performance regression testing
+│   ├── environments.py           # Test environment management
+│   └── README.md                 # Detailed orchestrator documentation
+├── run_orchestrator.py           # CLI entry point for test orchestrator
+├── baselines/                    # Performance baselines
 ├── fixtures/                      # Specialized test fixtures
 │   ├── hardware_fixtures.py       # Hardware mocking (camera, GPIO)
 │   ├── pipeline_fixtures.py       # Pipeline component fixtures
@@ -23,7 +31,8 @@ tests/
 ├── e2e/                          # End-to-end tests (10% of tests)
 ├── performance/                   # Performance benchmarks
 ├── security/                      # Security validation tests
-└── load/                         # Load and stress tests
+├── load/                         # Load and stress tests
+└── streaming/                     # Streaming pipeline tests
 ```
 
 ## Testing Pyramid
@@ -46,29 +55,50 @@ tests/
 
 ```bash
 # Install all testing dependencies
-pip install -e '.[dev,testing]'
+pip install -e '.[dev,testing,monitoring]'
 ```
 
-### Validate Test Environment
+### Run Tests with Orchestrator (Recommended)
+
+The test orchestrator provides a unified interface for running all test suites:
 
 ```bash
-# Check that all test requirements are met
-python scripts/testing/validate_test_environment.py
+# Run all tests with default settings
+python tests/run_orchestrator.py
+
+# Run specific test suites
+python tests/run_orchestrator.py --suites unit integration
+
+# Run with custom worker count
+python tests/run_orchestrator.py --workers 8
+
+# Run with coverage analysis
+python tests/run_orchestrator.py --suites all
+
+# Quick run without reports
+python tests/run_orchestrator.py --suites unit --no-reports --no-coverage
+
+# See all options
+python tests/run_orchestrator.py --help
 ```
 
-### Run Tests
+For detailed orchestrator documentation, see [tests/framework/README.md](framework/README.md).
+
+### Traditional pytest Usage
+
+You can also run tests directly with pytest:
 
 ```bash
 # Run all tests with coverage
-python scripts/testing/run_full_test_suite.py --coverage
+pytest tests/ -v --cov=src --cov=config
 
 # Run specific test categories
-python scripts/testing/run_full_test_suite.py --unit
-python scripts/testing/run_full_test_suite.py --integration
-python scripts/testing/run_full_test_suite.py --e2e
+pytest tests/unit/ -v
+pytest tests/integration/ -v
+pytest tests/e2e/ -v
 
 # Run with parallel execution
-python scripts/testing/run_full_test_suite.py --parallel 4
+pytest tests/ -n 4
 ```
 
 ## Test Categories
