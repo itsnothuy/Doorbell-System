@@ -218,6 +218,8 @@ The dashboard grid automatically adapts to different screen sizes:
 - **Tablet (768px - 1023px)**: 2 columns
 - **Desktop (≥ 1024px)**: 3 columns
 
+Large cards can span multiple columns using the `large` or `full-width` classes.
+
 ```html
 <section class="dashboard-grid">
   <div class="card">Card 1</div>

@@ -370,6 +370,20 @@
   word-wrap: break-word;
 }
 
+/* Face placeholder for demo/empty state */
+.face-placeholder {
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 48px;
+}
+
 /* ===== Log Container ===== */
 .log-container {
   background: var(--gray-900);
