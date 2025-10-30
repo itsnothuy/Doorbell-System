@@ -94,13 +94,14 @@ markers = [
     "network: Tests requiring network access",
     "gpu: Tests requiring GPU",
 ]
-```
-    error
-    ignore::UserWarning
-    ignore::DeprecationWarning:tensorflow.*
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
 ```
 
-### Test Environment Setup
+## 🧩 Test Types
 
 ```python
 # conftest.py
@@ -1429,9 +1430,12 @@ Pull requests automatically receive:
    ```python
    # Good
    def test_face_recognition_rejects_low_confidence_matches(self):
+       # Test implementation here
+       pass
        
    # Bad
    def test_face_rec(self):
+       pass
    ```
 
 2. **Follow AAA pattern**: Arrange, Act, Assert
@@ -1507,7 +1511,9 @@ Pull requests automatically receive:
    
    # Bad - depends on previous test
    def test_remove_face(self):
-       face_manager.remove_face("john")  # Assumes john was added
+       # Assumes john was added in previous test
+       face_manager.remove_face("john")
+       assert "john" not in face_manager.known_faces
    ```
 
 ### Performance Considerations
