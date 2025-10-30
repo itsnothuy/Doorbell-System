@@ -130,6 +130,7 @@ class PerformanceRegressor:
 
         try:
             # Execute test function
+            # Note: Return value intentionally discarded as we only measure performance metrics
             test_func(*args, **kwargs)
         finally:
             monitoring = False

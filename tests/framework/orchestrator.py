@@ -391,7 +391,7 @@ class TestOrchestrator:
         total_passed = sum(r.passed for r in result.suite_results)
         total_failed = sum(r.failed for r in result.suite_results)
         total_skipped = sum(r.skipped for r in result.suite_results)
-        sum(r.errors for r in result.suite_results)
+        total_errors = sum(r.errors for r in result.suite_results)
 
         # Generate suite rows
         suite_rows = ""
