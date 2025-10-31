@@ -1,0 +1,162 @@
+# Doorbell Security System - Multi-Architecture Docker Image
+# Supports: linux/amd64, linux/arm64, linux/arm/v7
+# Optimized for cross-platform deployment
+
+ARG PYTHON_VERSION=3.11
+FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim as base
+
+# Build arguments
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+# Labels
+LABEL maintainer="itsnothuy"
+LABEL description="Doorbell Security System - AI-powered face recognition"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/itsnothuy/Doorbell-System"
+
+# Set working directory
+WORKDIR /app
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEVELOPMENT_MODE=false \
+    PORT=5000 \
+    PYTHONPATH=/app
+
+# Display build information
+RUN echo "Building for platform: $TARGETPLATFORM" && \
+    echo "Building on platform: $BUILDPLATFORM" && \
+    echo "Target OS: $TARGETOS" && \
+    echo "Target Architecture: $TARGETARCH"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    pkg-config \
+    git \
+    curl \
+    ca-certificates \
+    libopencv-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libjpeg-dev \
+    libpng-dev \
+    libopenblas-dev \
+    liblapack-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Platform-specific optimizations
+RUN if [ "$TARGETARCH" = "arm64" ] || [ "$TARGETARCH" = "arm" ]; then \
+    echo "Installing ARM-specific optimizations..." && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    libatlas-base-dev \
+    && rm -rf /var/lib/apt/lists/*; \
+fi
+
+# Copy requirements files
+COPY requirements*.txt ./
+COPY pyproject.toml ./
+
+# Install Python dependencies with platform-specific optimizations
+RUN if [ "$TARGETARCH" = "arm64" ] || [ "$TARGETARCH" = "arm" ]; then \
+    echo "ARM64/ARM: Using optimized installation..." && \
+    pip install --no-cache-dir cmake dlib && \
+    pip install --no-cache-dir face_recognition; \
+else \
+    echo "AMD64: Standard installation..." && \
+    pip install cmake dlib face_recognition; \
+fi
+
+# Install remaining Python dependencies
+RUN pip install --no-cache-dir opencv-python-headless
+RUN if [ -f requirements-web.txt ]; then \
+    pip install --no-cache-dir -r requirements-web.txt; \
+fi
+RUN if [ -f requirements-production.txt ]; then \
+    pip install --no-cache-dir -r requirements-production.txt; \
+fi
+
+# Production stage
+FROM python:${PYTHON_VERSION}-slim as production
+
+# Copy installed packages from base stage
+COPY --from=base /usr/local/lib/python${PYTHON_VERSION}/site-packages /usr/local/lib/python${PYTHON_VERSION}/site-packages
+COPY --from=base /usr/local/bin /usr/local/bin
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libopencv-core4.5d \
+    libgomp1 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libopenblas0 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code
+COPY src/ /app/src/
+COPY config/ /app/config/
+COPY app.py /app/
+COPY requirements*.txt /app/
+COPY pyproject.toml /app/
+
+# Create necessary directories
+RUN mkdir -p data/known_faces data/blacklist_faces data/captures data/logs templates static
+
+# Create non-root user for security
+RUN useradd -m -u 1000 -s /bin/bash doorbell && \
+    chown -R doorbell:doorbell /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER doorbell
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PORT=5000 \
+    DEVELOPMENT_MODE=false
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5000/api/status || exit 1
+
+# Run the application
+CMD ["python", "app.py"]
+
+# Development stage (optional)
+FROM production as development
+
+USER root
+
+# Install development dependencies
+RUN pip install --no-cache-dir pytest pytest-cov pytest-mock black ruff mypy
+
+# Switch back to non-root user
+USER doorbell
+
+ENV DEVELOPMENT_MODE=true
+
+CMD ["python", "app.py"]
