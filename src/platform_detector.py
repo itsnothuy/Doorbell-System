@@ -4,8 +4,10 @@ Platform detection and auto-configuration for different environments
 
 import os
 import platform
+import subprocess
 import logging
 from pathlib import Path
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ class PlatformDetector:
         self.system = platform.system().lower()
         self.machine = platform.machine().lower()
         self.is_raspberry_pi = self._detect_raspberry_pi()
+        self.is_apple_silicon = self._detect_apple_silicon()
         self.is_macos = self.system == 'darwin'
         self.is_linux = self.system == 'linux'
         self.is_windows = self.system == 'windows'
@@ -25,6 +28,8 @@ class PlatformDetector:
         logger.info(f"Platform detected: {self.system} {self.machine}")
         if self.is_raspberry_pi:
             logger.info("Running on Raspberry Pi")
+        elif self.is_apple_silicon:
+            logger.info("Running on macOS Apple Silicon")
         elif self.is_macos:
             logger.info("Running on macOS - Development mode")
         else:
@@ -54,6 +59,138 @@ class PlatformDetector:
             pass
         
         return False
+    
+    def _detect_apple_silicon(self) -> bool:
+        """Detect Apple Silicon (M1/M2/M3) processors"""
+        if self.system != 'darwin':
+            return False
+        
+        try:
+            # Check for ARM64 architecture on macOS
+            if 'arm64' in self.machine or 'aarch64' in self.machine:
+                return True
+            
+            # Additional check using sysctl
+            result = subprocess.run(
+                ['sysctl', '-n', 'machdep.cpu.brand_string'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                cpu_brand = result.stdout.lower()
+                if 'apple' in cpu_brand:
+                    return True
+        except Exception:
+            pass
+        
+        return False
+    
+    def _detect_gpu_support(self) -> Dict[str, Any]:
+        """Detect GPU support and capabilities"""
+        gpu_info = {
+            'has_gpu': False,
+            'type': None,
+            'cuda_available': False,
+            'opencl_available': False
+        }
+        
+        try:
+            # Check for NVIDIA GPU (CUDA)
+            if os.path.exists('/usr/local/cuda') or os.environ.get('CUDA_HOME'):
+                gpu_info['has_gpu'] = True
+                gpu_info['type'] = 'nvidia'
+                gpu_info['cuda_available'] = True
+            
+            # Check for AMD GPU (ROCm)
+            if os.path.exists('/opt/rocm'):
+                gpu_info['has_gpu'] = True
+                gpu_info['type'] = 'amd'
+            
+            # Check for Apple GPU (Metal)
+            if self.is_apple_silicon:
+                gpu_info['has_gpu'] = True
+                gpu_info['type'] = 'apple'
+        except Exception:
+            pass
+        
+        return gpu_info
+    
+    def _detect_camera_support(self) -> bool:
+        """Detect if camera hardware is available"""
+        if self.is_raspberry_pi:
+            # Check for Raspberry Pi camera
+            return os.path.exists('/dev/video0') or os.path.exists('/dev/video1')
+        elif self.is_linux:
+            # Check for V4L2 devices
+            return os.path.exists('/dev/video0')
+        elif self.is_macos or self.is_windows:
+            # Assume camera available in development
+            return True
+        return False
+    
+    def _detect_gpio_support(self) -> bool:
+        """Detect if GPIO hardware is available"""
+        return self.is_raspberry_pi and os.path.exists('/dev/gpiomem')
+    
+    def _get_memory_gb(self) -> float:
+        """Get total system memory in GB"""
+        try:
+            if self.is_linux:
+                with open('/proc/meminfo', 'r') as f:
+                    for line in f:
+                        if line.startswith('MemTotal:'):
+                            kb = int(line.split()[1])
+                            return round(kb / (1024 * 1024), 2)
+            elif self.is_macos:
+                result = subprocess.run(
+                    ['sysctl', '-n', 'hw.memsize'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    bytes_mem = int(result.stdout.strip())
+                    return round(bytes_mem / (1024 ** 3), 2)
+        except Exception:
+            pass
+        
+        return 0.0
+    
+    def get_platform_info(self) -> Dict[str, Any]:
+        """Get comprehensive platform information"""
+        gpu_info = self._detect_gpu_support()
+        
+        return {
+            "os": platform.system(),
+            "os_version": platform.release(),
+            "architecture": self.machine,
+            "processor": platform.processor(),
+            "python_version": platform.python_version(),
+            "is_raspberry_pi": self.is_raspberry_pi,
+            "is_apple_silicon": self.is_apple_silicon,
+            "is_windows": self.is_windows,
+            "is_linux": self.is_linux,
+            "is_macos": self.is_macos,
+            "has_gpu": gpu_info['has_gpu'],
+            "gpu_info": gpu_info,
+            "has_camera": self._detect_camera_support(),
+            "has_gpio": self._detect_gpio_support(),
+            "memory_gb": self._get_memory_gb(),
+            "cpu_count": os.cpu_count() or 1,
+            "is_development": self.is_development,
+        }
+    
+    def get_recommended_installation_method(self) -> str:
+        """Get platform-specific installation recommendations"""
+        if self.is_raspberry_pi:
+            return "apt_then_pip"  # Use system packages first
+        elif self.is_apple_silicon:
+            return "homebrew_then_pip"  # Use homebrew for system deps
+        elif self.is_windows:
+            return "conda_preferred"  # Conda handles Windows deps better
+        else:
+            return "pip_with_system_deps"  # Standard Linux approach
     
     def get_camera_config(self) -> dict:
         """Get camera configuration based on platform"""

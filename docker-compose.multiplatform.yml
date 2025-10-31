@@ -1,0 +1,160 @@
+version: '3.8'
+
+# Multi-Platform Docker Compose Configuration
+# Supports: linux/amd64, linux/arm64
+
+services:
+  # Main application service
+  doorbell-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.multiarch
+      target: production
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: doorbell-security:${VERSION:-latest}
+    container_name: doorbell-app
+    restart: unless-stopped
+    
+    environment:
+      # Platform detection
+      - PLATFORM_MODE=${PLATFORM_MODE:-auto}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
+      
+      # Application settings
+      - PORT=${PORT:-5000}
+      - PYTHONUNBUFFERED=1
+      - HARDWARE_DETECTION=auto
+      
+      # Face recognition settings
+      - FACE_TOLERANCE=${FACE_TOLERANCE:-0.6}
+      - BLACKLIST_TOLERANCE=${BLACKLIST_TOLERANCE:-0.5}
+      - FACE_DETECTION_MODEL=${FACE_DETECTION_MODEL:-hog}
+    
+    volumes:
+      # Persistent data
+      - ./data:/app/data
+      - ./config:/app/config:ro
+      
+      # Optional: Mount custom models
+      # - ./models:/app/models:ro
+    
+    ports:
+      - "${PORT:-5000}:5000"
+    
+    networks:
+      - doorbell-network
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Resource limits (adjust based on platform)
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-2G}
+          cpus: '${CPU_LIMIT:-2.0}'
+        reservations:
+          memory: ${MEMORY_RESERVE:-512M}
+          cpus: '${CPU_RESERVE:-0.5}'
+
+  # Platform-specific override: Raspberry Pi (ARM64)
+  doorbell-app-pi:
+    extends: doorbell-app
+    image: doorbell-security:pi-${VERSION:-latest}
+    container_name: doorbell-app-pi
+    platform: linux/arm64
+    
+    environment:
+      - PLATFORM_MODE=raspberry_pi
+      - MEMORY_LIMIT_MB=1024
+      - WORKER_PROCESSES=1
+      - FACE_DETECTION_MODEL=hog
+      - LOW_MEMORY_MODE=true
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # GPIO access (Linux only)
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
+    
+    # Video device access (uncomment if using USB camera with Docker)
+    # devices:
+    #   - /dev/video0:/dev/video0
+    
+    privileged: false
+
+  # Platform-specific override: Server (AMD64)
+  doorbell-app-server:
+    extends: doorbell-app
+    image: doorbell-security:server-${VERSION:-latest}
+    container_name: doorbell-app-server
+    platform: linux/amd64
+    
+    environment:
+      - PLATFORM_MODE=server
+      - MEMORY_LIMIT_MB=2048
+      - WORKER_PROCESSES=2
+      - FACE_DETECTION_MODEL=cnn
+      - LOW_MEMORY_MODE=false
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # Development service
+  doorbell-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.multiarch
+      target: development
+    image: doorbell-security:dev-${VERSION:-latest}
+    container_name: doorbell-dev
+    
+    environment:
+      - DEVELOPMENT_MODE=true
+      - LOG_LEVEL=DEBUG
+      - PLATFORM_MODE=development
+    
+    volumes:
+      # Mount source code for live reload
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./tests:/app/tests
+    
+    ports:
+      - "5000:5000"
+    
+    networks:
+      - doorbell-network
+    
+    command: python app.py
+
+networks:
+  doorbell-network:
+    driver: bridge
+    name: doorbell-network
+
+volumes:
+  doorbell-data:
+    name: doorbell-data
