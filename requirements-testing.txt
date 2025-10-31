@@ -1,0 +1,53 @@
+# Testing Dependencies for Comprehensive Test Suite
+# These dependencies are needed for the full test suite but may be optional for basic CI
+
+# Core Testing Framework (included in requirements-ci.txt but repeated for clarity)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-asyncio>=0.21.0
+pytest-xdist>=3.3.0
+pytest-html>=3.2.0
+pytest-timeout>=2.1.0
+pytest-randomly>=3.12.0
+pytest-benchmark>=4.0.0
+coverage[toml]>=7.3.0
+
+# Code Quality Tools
+black>=23.9.0
+ruff>=0.1.0
+isort>=5.12.0
+mypy>=1.6.0
+
+# Type Stubs
+types-requests>=2.31.0
+types-Pillow>=10.0.0
+types-PyYAML>=6.0.0
+types-python-dateutil>=2.8.0
+
+# Security Testing
+bandit[toml]>=1.7.5
+safety>=2.3.0
+
+# Mocking and Fixtures
+requests-mock>=1.11.0
+responses>=0.23.0
+factory-boy>=3.3.0
+faker>=19.6.0
+freezegun>=1.2.0
+
+# Performance Testing (optional, may fail on some platforms)
+memory-profiler>=0.61.0
+psutil>=5.9.0
+
+# Load Testing (optional)
+# locust>=2.16.1  # Commented out - only install when needed
+
+# Property-Based Testing
+hypothesis>=6.82.0
+
+# Pre-commit Hooks
+pre-commit>=3.4.0
+
+# Docker Client (for integration tests)
+docker>=7.0.0
