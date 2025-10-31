@@ -1,5 +1,12 @@
 # Testing Guide
 
+## 🚀 Quick Links
+
+- **[CI/CD Testing Guide](CI_CD_TESTING_GUIDE.md)** - Complete guide for CI/CD workflows and troubleshooting
+- **[CI/CD Quick Reference](CI_CD_QUICK_REFERENCE.md)** - One-page cheat sheet for common tasks
+- **[Test Execution Guide](../TEST_EXECUTION_GUIDE.md)** - Detailed test execution instructions
+- **[README Testing](../README_TESTING.md)** - Testing overview and setup
+
 ## 🧪 Testing Strategy Overview
 
 The Doorbell Security System employs a comprehensive testing strategy to ensure reliability, security, and performance across different platforms and configurations. This guide covers all aspects of testing from unit tests to load testing and CI/CD automation.
