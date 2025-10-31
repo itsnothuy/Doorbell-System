@@ -302,12 +302,21 @@ Doorbell-System/
 
 ## Documentation
 
-- [Sensor Integration Guide](docs/SENSOR_INTEGRATION_GUIDE.md) ⭐ **NEW** - Raspberry Pi sensor setup
-- [Pipeline Integration Guide](docs/PIPELINE_INTEGRATION.md) ⭐ **NEW**
-- [Architecture Documentation](docs/ARCHITECTURE.md)
+### 🚀 Getting Started
 - [Installation Guide](docs/installation.md)
+- [Architecture Documentation](docs/ARCHITECTURE.md)
 - [Configuration Management](docs/CONFIGURATION_MANAGEMENT.md)
-- [Testing Guide](docs/TESTING.md)
+
+### 🧪 Testing & CI/CD
+- [CI/CD Quick Reference](docs/CI_CD_QUICK_REFERENCE.md) ⭐ **NEW** - One-page cheat sheet
+- [CI/CD Testing Guide](docs/CI_CD_TESTING_GUIDE.md) ⭐ **NEW** - Complete CI/CD guide
+- [Testing Guide](docs/TESTING.md) - Comprehensive testing documentation
+- [Test Execution Guide](TEST_EXECUTION_GUIDE.md)
+- [README Testing](README_TESTING.md)
+
+### 🔧 Integration & Development
+- [Sensor Integration Guide](docs/SENSOR_INTEGRATION_GUIDE.md) - Raspberry Pi sensor setup
+- [Pipeline Integration Guide](docs/PIPELINE_INTEGRATION.md)
 - [Security Guidelines](docs/SECURITY.md)
 
 ## Contributing

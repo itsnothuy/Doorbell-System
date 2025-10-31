@@ -1,0 +1,44 @@
+# CI/CD Core Dependencies
+# These are the minimal, guaranteed-to-work dependencies for CI/CD pipelines
+# Designed to install quickly and reliably across platforms
+
+# Testing Framework
+pytest>=7.4.0,<9.0.0
+pytest-cov>=4.1.0,<6.0.0
+pytest-mock>=3.11.0,<4.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+pytest-xdist>=3.3.0,<4.0.0
+coverage[toml]>=7.3.0,<8.0.0
+
+# Code Quality
+black>=23.9.0,<25.0.0
+ruff>=0.1.0,<1.0.0
+isort>=5.12.0,<6.0.0
+
+# Mocking and Testing Utilities
+requests-mock>=1.11.0,<2.0.0
+responses>=0.23.0,<1.0.0
+faker>=19.6.0,<25.0.0
+freezegun>=1.2.0,<2.0.0
+
+# Web Framework (lightweight for CI)
+Flask>=2.3.0,<4.0.0
+Flask-CORS>=4.0.0,<5.0.0
+
+# Basic Dependencies (guaranteed lightweight installs)
+requests>=2.31.0,<3.0.0
+python-dateutil>=2.8.0,<3.0.0
+pyyaml>=6.0.0,<7.0.0
+colorlog>=6.7.0,<7.0.0
+
+# PIL/Pillow (required for image handling, but lightweight)
+Pillow>=10.0.0,<11.0.0
+
+# NumPy (required but will use pre-built wheels)
+# Note: While numpy is heavy, it's required by many test utilities
+# and modern pip will use pre-built wheels which install quickly
+numpy>=1.24.0,<2.0.0
+
+# Note: face_recognition, opencv-python, and other very heavy dependencies
+# are intentionally excluded from this file to speed up CI installation.
+# They will be installed separately with proper error handling.

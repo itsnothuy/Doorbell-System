@@ -117,8 +117,21 @@ $RECYCLE.BIN/
 htmlcov/
 .coverage.*
 coverage.xml
+coverage.json
 *.cover
 .hypothesis/
+pytest-results.xml
+test-report.html
+benchmark-results.json
+bandit-report.json
+safety-report.json
+semgrep-report.json
+trivy-fs-report.json
+trufflehog-report.json
+security-summary.md
+load-test-report.html
+load-test-results*.csv
+COVERAGE_REPORT.md
 
 # Security
 security_report.json
