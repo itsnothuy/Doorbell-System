@@ -121,6 +121,7 @@ coverage.json
 *.cover
 .hypothesis/
 pytest-results.xml
+pytest-results-*.xml
 test-report.html
 benchmark-results.json
 bandit-report.json
@@ -132,6 +133,10 @@ security-summary.md
 load-test-report.html
 load-test-results*.csv
 COVERAGE_REPORT.md
+performance-regressions.json
+selected-tests.txt
+test-*.log
+test_*.log
 
 # Security
 security_report.json

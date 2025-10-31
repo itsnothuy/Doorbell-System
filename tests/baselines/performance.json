@@ -1,0 +1,5 @@
+{
+  "description": "Performance baseline for test execution times",
+  "last_updated": "2025-10-31",
+  "note": "This file will be automatically populated when performance tests are run with --save-baseline"
+}
