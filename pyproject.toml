@@ -339,8 +339,15 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml:coverage.xml",
+    "--cov-report=json:coverage.json",
+    "--junit-xml=pytest-results.xml",
     "--tb=short",
+    # Performance optimizations
+    "--maxfail=10",  # Stop after 10 failures to save time
+    # Note: --timeout=300 requires pytest-timeout plugin, add it in CI only
 ]
+# Note: Parallel execution (-n auto) should be added in CI, not here
+# to allow local debugging without parallelism
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
@@ -356,6 +363,7 @@ markers = [
     "load: marks load testing scenarios",
     "property: marks property-based tests using Hypothesis",
     "asyncio: marks tests that use asyncio",
+    "flaky: marks tests that are known to be flaky",
 ]
 filterwarnings = [
     "error",
