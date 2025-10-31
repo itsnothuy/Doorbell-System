@@ -486,7 +486,15 @@ jobs:
             exit 0
           }
         else
-          echo "⚠️ Coverage report script not found, skipping"
+          echo "⚠️ Coverage report script not found, using coverage directly"
+          if [ -f coverage.xml ]; then
+            coverage report --fail-under=70 || {
+              echo "⚠️ Coverage below 70% but continuing"
+              exit 0
+            }
+          else
+            echo "⚠️ No coverage data available, skipping"
+          fi
         fi
       continue-on-error: true
     
@@ -495,6 +503,13 @@ jobs:
       run: |
         if [ -f scripts/testing/generate_coverage_report.py ]; then
           python scripts/testing/generate_coverage_report.py --no-run --markdown || echo "Coverage report generation failed"
+        else
+          # Fallback to basic coverage report
+          if [ -f coverage.xml ]; then
+            echo "## Coverage Report" > COVERAGE_REPORT.md
+            echo "" >> COVERAGE_REPORT.md
+            coverage report >> COVERAGE_REPORT.md || echo "Coverage report unavailable" >> COVERAGE_REPORT.md
+          fi
         fi
         
         # Add coverage comment to PR

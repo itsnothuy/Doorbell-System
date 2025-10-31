@@ -272,8 +272,8 @@ pip install --timeout 300 -r requirements.txt
 # Use cache
 pip install --cache-dir ~/.cache/pip -r requirements.txt
 
-# Install one by one
-cat requirements.txt | xargs -n 1 pip install
+# Install one by one if batch fails
+xargs -n 1 pip install < requirements.txt
 ```
 
 ### System Dependencies Missing (Ubuntu)

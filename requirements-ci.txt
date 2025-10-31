@@ -35,8 +35,10 @@ colorlog>=6.7.0,<7.0.0
 Pillow>=10.0.0,<11.0.0
 
 # NumPy (required but will use pre-built wheels)
+# Note: While numpy is heavy, it's required by many test utilities
+# and modern pip will use pre-built wheels which install quickly
 numpy>=1.24.0,<2.0.0
 
-# Note: face_recognition, opencv-python, and other heavy dependencies
+# Note: face_recognition, opencv-python, and other very heavy dependencies
 # are intentionally excluded from this file to speed up CI installation.
 # They will be installed separately with proper error handling.

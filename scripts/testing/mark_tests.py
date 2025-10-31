@@ -28,7 +28,7 @@ def should_add_marker(content: str, marker: str) -> bool:
 def add_marker_to_file(file_path: Path, marker: str) -> bool:
     """Add marker to a test file if needed."""
     try:
-        content = file_path.read_text()
+        content = file_path.read_text(encoding='utf-8')
         
         if not should_add_marker(content, marker):
             return False
@@ -39,7 +39,8 @@ def add_marker_to_file(file_path: Path, marker: str) -> bool:
         
         # Find the first test function or class
         for i, line in enumerate(lines):
-            if re.match(r'^(def test_|class Test)', line.strip()):
+            # Match test functions or classes at any indentation level
+            if re.search(r'^\s*(def test_|class Test)', line):
                 insert_index = i
                 break
         
@@ -57,7 +58,7 @@ def add_marker_to_file(file_path: Path, marker: str) -> bool:
         lines.insert(insert_index, f'@pytest.mark.{marker}')
         
         # Write back
-        file_path.write_text('\n'.join(lines))
+        file_path.write_text('\n'.join(lines), encoding='utf-8')
         print(f"  ✅ Added @pytest.mark.{marker} to {file_path.name}")
         return True
         
