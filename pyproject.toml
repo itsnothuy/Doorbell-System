@@ -344,7 +344,7 @@ addopts = [
     "--tb=short",
     # Performance optimizations
     "--maxfail=10",  # Stop after 10 failures to save time
-    "--timeout=300",  # 5 minute timeout per test
+    # Note: --timeout=300 requires pytest-timeout plugin, add it in CI only
 ]
 # Note: Parallel execution (-n auto) should be added in CI, not here
 # to allow local debugging without parallelism
@@ -371,13 +371,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
-# Parallel testing configuration (for pytest-xdist)
-# These are used when -n is specified
-[tool.pytest.ini_options.xdist]
-# Distribute tests by load balancing
-dist = "worksteal"
-# Enable logging for parallel tests
-looponfailroots = ["src", "tests"]
 
 # Coverage configuration
 [tool.coverage.run]

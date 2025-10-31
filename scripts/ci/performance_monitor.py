@@ -186,7 +186,7 @@ def main():
         "--threshold",
         type=float,
         default=0.2,
-        help="Regression threshold as decimal (0.2 = 20%)",
+        help="Regression threshold as decimal (0.2 = 20 percent)",
     )
     parser.add_argument(
         "--save-baseline",
