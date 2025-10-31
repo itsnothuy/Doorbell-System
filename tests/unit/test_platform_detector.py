@@ -7,7 +7,6 @@ Tests platform detection and configuration.
 
 import os
 import platform
-import subprocess
 from unittest.mock import patch, mock_open, MagicMock, Mock
 
 import pytest

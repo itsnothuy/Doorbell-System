@@ -193,12 +193,13 @@ function Install-PythonDependencies {
         Write-Warning "dlib installation failed"
         Write-Status "Trying alternative installation method..."
         
-        # Try installing pre-built wheel if available
-        pip install https://github.com/z-mahmud22/Dlib_Windows_Python3.x/raw/main/dlib-19.24.2-cp311-cp311-win_amd64.whl
+        # Try installing from PyPI again with verbose output
+        pip install --verbose dlib
         
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Could not install dlib. You may need Visual C++ Build Tools"
             Write-Status "See: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
+            Write-Status "Or try: pip install dlib --no-cache-dir"
         }
     }
     

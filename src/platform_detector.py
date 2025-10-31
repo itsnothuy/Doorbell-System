@@ -159,6 +159,8 @@ class PlatformDetector:
     
     def get_platform_info(self) -> Dict[str, Any]:
         """Get comprehensive platform information"""
+        gpu_info = self._detect_gpu_support()
+        
         return {
             "os": platform.system(),
             "os_version": platform.release(),
@@ -170,8 +172,8 @@ class PlatformDetector:
             "is_windows": self.is_windows,
             "is_linux": self.is_linux,
             "is_macos": self.is_macos,
-            "has_gpu": self._detect_gpu_support()['has_gpu'],
-            "gpu_info": self._detect_gpu_support(),
+            "has_gpu": gpu_info['has_gpu'],
+            "gpu_info": gpu_info,
             "has_camera": self._detect_camera_support(),
             "has_gpio": self._detect_gpio_support(),
             "memory_gb": self._get_memory_gb(),

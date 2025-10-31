@@ -240,7 +240,28 @@ jobs:
       
       - name: Test image
         run: |
-          docker run --rm doorbell-security:test-${{ matrix.platform }} python -c "print('Docker image works!')"
+          echo "Testing Docker image for ${{ matrix.platform }}..."
+          docker run --rm doorbell-security:test-${{ matrix.platform }} python -c "
+          import sys
+          sys.path.append('/app')
+          
+          # Test imports
+          from src.platform_detector import PlatformDetector
+          from config.platform_configs import get_platform_configs
+          
+          # Test platform detection
+          detector = PlatformDetector()
+          info = detector.get_platform_info()
+          
+          print('✓ Platform detector works')
+          print(f'  Platform: {info[\"os\"]} {info[\"architecture\"]}')
+          
+          # Test configuration
+          config = get_platform_configs(detector)
+          print(f'✓ Configuration loaded: {config[\"platform_type\"]}')
+          
+          print('✓ Docker image validation passed')
+          "
 
   # Job 4: Installation Script Validation
   installation-scripts:

@@ -92,8 +92,9 @@ services:
     devices:
       - /dev/gpiomem:/dev/gpiomem
     
-    # Video device access
-    # - /dev/video0:/dev/video0
+    # Video device access (uncomment if using USB camera with Docker)
+    # devices:
+    #   - /dev/video0:/dev/video0
     
     privileged: false
 

@@ -92,7 +92,7 @@ configure_swap() {
             
             # Increase swap (if possible)
             if [ -f /etc/dphys-swapfile ]; then
-                sudo sed -i 's/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+                sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
                 sudo dphys-swapfile swapoff
                 sudo dphys-swapfile setup
                 sudo dphys-swapfile swapon

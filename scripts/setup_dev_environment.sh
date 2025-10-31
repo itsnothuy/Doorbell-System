@@ -149,7 +149,7 @@ create_platform_config() {
     
     source venv/bin/activate 2>/dev/null || true
     
-    python3 << 'EOF' || print_warning "Could not create platform config"
+    python3 << 'EOF' || print_warning "Could not create platform config - ensure platform_detector.py and platform_configs.py are installed"
 import sys
 import json
 from pathlib import Path
@@ -171,6 +171,7 @@ try:
     print(f'✓ Platform configuration saved to {config_file}')
 except Exception as e:
     print(f'× Could not create platform config: {e}', file=sys.stderr)
+    print(f'× Try running: pip install -e .', file=sys.stderr)
     sys.exit(1)
 EOF
     
