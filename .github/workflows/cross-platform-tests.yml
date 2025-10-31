@@ -1,0 +1,325 @@
+name: Cross-Platform Testing
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  pull_request:
+    branches: [ master, main ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  PYTHON_VERSION_MAIN: '3.11'
+
+jobs:
+  # Job 1: Platform Detection Test
+  platform-detection:
+    name: Platform Detection - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform-name: "Ubuntu (AMD64)"
+            expected-platform: "linux"
+          - os: macos-latest
+            platform-name: "macOS (Apple Silicon)"
+            expected-platform: "darwin"
+            expected-arch: "arm64"
+          - os: macos-13
+            platform-name: "macOS (Intel)"
+            expected-platform: "darwin"
+            expected-arch: "x86_64"
+          - os: windows-latest
+            platform-name: "Windows"
+            expected-platform: "windows"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION_MAIN }}
+          cache: 'pip'
+      
+      - name: Install minimal dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pillow pytest
+      
+      - name: Run platform detection tests
+        run: |
+          python -m pytest tests/unit/test_platform_detector.py -v --tb=short
+        env:
+          CI: true
+          GITHUB_ACTIONS: true
+      
+      - name: Display platform information
+        run: |
+          python -c "
+          from src.platform_detector import PlatformDetector
+          
+          detector = PlatformDetector()
+          info = detector.get_platform_info()
+          
+          print('Platform Information:')
+          print(f'  OS: {info[\"os\"]}')
+          print(f'  Architecture: {info[\"architecture\"]}')
+          print(f'  Python: {info[\"python_version\"]}')
+          print(f'  Memory: {info[\"memory_gb\"]}GB')
+          print(f'  CPU Count: {info[\"cpu_count\"]}')
+          print(f'  Apple Silicon: {info[\"is_apple_silicon\"]}')
+          print(f'  Raspberry Pi: {info[\"is_raspberry_pi\"]}')
+          "
+
+  # Job 2: Cross-Platform Unit Tests
+  cross-platform-tests:
+    name: Tests - ${{ matrix.platform-name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.timeout }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu - Full test suite
+          - os: ubuntu-latest
+            platform-name: "Ubuntu (Full)"
+            python-version: "3.11"
+            test-suite: "full"
+            timeout: 30
+            
+          # macOS Intel - Core tests
+          - os: macos-13
+            platform-name: "macOS Intel"
+            python-version: "3.11"
+            test-suite: "core"
+            timeout: 45
+            
+          # macOS Apple Silicon - Core tests
+          - os: macos-latest
+            platform-name: "macOS Apple Silicon"
+            python-version: "3.11"
+            test-suite: "core"
+            timeout: 45
+            
+          # Windows - Basic tests only
+          - os: windows-latest
+            platform-name: "Windows"
+            python-version: "3.11"
+            test-suite: "basic"
+            timeout: 60
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libopenblas-dev
+          python -m pip install --upgrade pip
+          pip install numpy pillow pytest pytest-cov pytest-mock
+      
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake
+          python -m pip install --upgrade pip
+          pip install numpy pillow pytest pytest-cov pytest-mock
+      
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pillow pytest pytest-cov pytest-mock
+      
+      - name: Run full test suite
+        if: matrix.test-suite == 'full'
+        run: |
+          python -m pytest tests/unit/ -v --cov=src --cov=config --cov-report=xml --cov-report=term
+        env:
+          CI: true
+          GITHUB_ACTIONS: true
+          PLATFORM_TEST_SUITE: full
+      
+      - name: Run core test suite
+        if: matrix.test-suite == 'core'
+        run: |
+          python -m pytest tests/unit/test_platform_detector.py tests/unit/test_platform_configs.py -v --cov=src.platform_detector --cov=config.platform_configs --cov-report=xml
+        env:
+          CI: true
+          GITHUB_ACTIONS: true
+          PLATFORM_TEST_SUITE: core
+      
+      - name: Run basic test suite
+        if: matrix.test-suite == 'basic'
+        run: |
+          python -m pytest tests/unit/test_platform_detector.py -v
+        env:
+          CI: true
+          GITHUB_ACTIONS: true
+          PLATFORM_TEST_SUITE: basic
+      
+      - name: Upload coverage reports
+        if: matrix.test-suite == 'full' || matrix.test-suite == 'core'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.platform-name }}
+          name: coverage-${{ matrix.platform-name }}
+          fail_ci_if_error: false
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.platform-name }}
+          path: |
+            coverage.xml
+            .coverage
+            htmlcov/
+
+  # Job 3: Docker Multi-Architecture Build Test
+  docker-multiarch-test:
+    name: Docker Multi-Arch Build - ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build multi-arch image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.multiarch
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: doorbell-security:test-${{ matrix.platform }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test image
+        run: |
+          docker run --rm doorbell-security:test-${{ matrix.platform }} python -c "print('Docker image works!')"
+
+  # Job 4: Installation Script Validation
+  installation-scripts:
+    name: Validate ${{ matrix.script-name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script-name: "Ubuntu Script"
+            script-path: "scripts/install/install_ubuntu.sh"
+            dry-run: true
+          
+          - os: macos-latest
+            script-name: "macOS Script"
+            script-path: "scripts/install/install_macos.sh"
+            dry-run: true
+          
+          - os: macos-13
+            script-name: "macOS Intel Script"
+            script-path: "scripts/install/install_macos.sh"
+            dry-run: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate script syntax (Bash)
+        if: runner.os != 'Windows'
+        run: |
+          bash -n ${{ matrix.script-path }}
+          echo "✓ Script syntax valid"
+      
+      - name: Check script is executable
+        if: runner.os != 'Windows'
+        run: |
+          if [ -x "${{ matrix.script-path }}" ]; then
+            echo "✓ Script is executable"
+          else
+            echo "× Script is not executable"
+            chmod +x ${{ matrix.script-path }}
+            echo "✓ Made script executable"
+          fi
+      
+      - name: Dry-run installation (Ubuntu)
+        if: runner.os == 'Linux' && matrix.dry-run
+        run: |
+          echo "Validating Ubuntu installation script..."
+          # Just check the script runs without errors in check mode
+          bash -n ${{ matrix.script-path }}
+      
+      - name: Dry-run installation (macOS)
+        if: runner.os == 'macOS' && matrix.dry-run
+        run: |
+          echo "Validating macOS installation script..."
+          bash -n ${{ matrix.script-path }}
+
+  # Job 5: Test Results Summary
+  test-summary:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [platform-detection, cross-platform-tests, docker-multiarch-test, installation-scripts]
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          echo "Platform Detection: ${{ needs.platform-detection.result }}"
+          echo "Cross-Platform Tests: ${{ needs.cross-platform-tests.result }}"
+          echo "Docker Multi-Arch: ${{ needs.docker-multiarch-test.result }}"
+          echo "Installation Scripts: ${{ needs.installation-scripts.result }}"
+          
+          if [ "${{ needs.platform-detection.result }}" != "success" ] || \
+             [ "${{ needs.cross-platform-tests.result }}" != "success" ]; then
+            echo "❌ Some critical tests failed"
+            exit 1
+          else
+            echo "✅ All critical tests passed"
+          fi

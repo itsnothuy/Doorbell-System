@@ -574,6 +574,167 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.security)
 
 
+# ============================================================================
+# Platform-Specific Test Fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def platform_config_fixture() -> Dict[str, Any]:
+    """Platform-specific test configuration fixture."""
+    
+    import platform as plat
+    
+    config = {
+        "platform": plat.system().lower(),
+        "architecture": plat.machine().lower(),
+        "is_ci": os.environ.get("CI", "false").lower() == "true",
+        "temp_dir": None,
+        "mock_hardware": True,
+        "test_timeout": 30,
+    }
+    
+    # Platform-specific adjustments
+    if config["platform"] == "windows":
+        config.update({
+            "path_separator": "\\",
+            "test_timeout": 60,  # Windows tests often slower
+            "mock_hardware": True,  # Always mock on Windows
+            "line_endings": "CRLF",
+        })
+    elif config["platform"] == "darwin":
+        config.update({
+            "test_timeout": 45,  # macOS can be slow in CI
+            "mock_hardware": True,
+            "line_endings": "LF",
+        })
+    elif "arm" in config["architecture"] or "aarch" in config["architecture"]:
+        config.update({
+            "test_timeout": 120,  # ARM devices can be slower
+            "memory_limit": True,
+            "line_endings": "LF",
+        })
+    else:
+        config.update({
+            "line_endings": "LF",
+        })
+    
+    return config
+
+
+@pytest.fixture
+def platform_paths_fixture(platform_config_fixture):
+    """Platform-appropriate path handling fixture."""
+    
+    from pathlib import Path
+    
+    class PlatformPaths:
+        def __init__(self, config):
+            self.config = config
+            self.temp_base = Path(tempfile.gettempdir())
+            
+        def join(self, *parts):
+            """Platform-appropriate path joining."""
+            return str(Path(*parts).resolve())
+        
+        def normalize(self, path):
+            """Normalize path for platform."""
+            return str(Path(path).resolve())
+        
+        def get_separator(self):
+            """Get platform-specific path separator."""
+            return self.config.get("path_separator", os.sep)
+        
+        def to_native(self, path):
+            """Convert path to native format."""
+            p = Path(path)
+            if self.config["platform"] == "windows":
+                return str(p).replace("/", "\\")
+            else:
+                return str(p).replace("\\", "/")
+    
+    return PlatformPaths(platform_config_fixture)
+
+
+@pytest.fixture
+def mock_hardware_manager_fixture(platform_config_fixture):
+    """Platform-specific hardware mocking fixture."""
+    
+    class MockHardwareManager:
+        def __init__(self, config):
+            self.config = config
+            self.camera_mock = Mock()
+            self.gpio_mock = Mock()
+            
+            # Platform-specific mock behaviors
+            if config["platform"] == "windows":
+                self._setup_windows_mocks()
+            elif config["platform"] == "darwin":
+                self._setup_macos_mocks()
+            else:
+                self._setup_linux_mocks()
+        
+        def _setup_windows_mocks(self):
+            """Windows-specific mock setup."""
+            # Handle Windows-specific camera behaviors
+            self.camera_mock.read.return_value = (True, np.zeros((480, 640, 3), dtype=np.uint8))
+            self.camera_mock.isOpened.return_value = True
+            
+        def _setup_macos_mocks(self):
+            """macOS-specific mock setup."""
+            # Handle macOS camera permissions and behaviors
+            self.camera_mock.read.return_value = (True, np.zeros((480, 640, 3), dtype=np.uint8))
+            self.camera_mock.isOpened.return_value = True
+            
+        def _setup_linux_mocks(self):
+            """Linux-specific mock setup."""
+            # Handle Linux V4L2 and GPIO behaviors
+            self.camera_mock.read.return_value = (True, np.zeros((480, 640, 3), dtype=np.uint8))
+            self.camera_mock.isOpened.return_value = True
+            self.gpio_mock.setup.return_value = None
+            self.gpio_mock.cleanup.return_value = None
+        
+        def get_camera_mock(self):
+            """Get platform-appropriate camera mock."""
+            return self.camera_mock
+        
+        def get_gpio_mock(self):
+            """Get platform-appropriate GPIO mock."""
+            return self.gpio_mock
+    
+    return MockHardwareManager(platform_config_fixture)
+
+
+@pytest.fixture(scope="session")
+def ci_environment_fixture():
+    """Detect and configure for CI environment."""
+    
+    ci_info = {
+        "is_ci": False,
+        "ci_platform": None,
+        "runner_os": None,
+    }
+    
+    # Detect GitHub Actions
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        ci_info["is_ci"] = True
+        ci_info["ci_platform"] = "github_actions"
+        ci_info["runner_os"] = os.environ.get("RUNNER_OS", "unknown").lower()
+    
+    # Detect other CI platforms
+    elif os.environ.get("TRAVIS") == "true":
+        ci_info["is_ci"] = True
+        ci_info["ci_platform"] = "travis"
+    elif os.environ.get("CIRCLECI") == "true":
+        ci_info["is_ci"] = True
+        ci_info["ci_platform"] = "circle"
+    elif os.environ.get("CI") == "true":
+        ci_info["is_ci"] = True
+        ci_info["ci_platform"] = "generic"
+    
+    return ci_info
+
+
 @pytest.fixture(autouse=True)
 def setup_test_environment(monkeypatch, temp_test_dir):
     """Setup test environment for all tests."""
