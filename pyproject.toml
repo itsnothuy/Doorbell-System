@@ -355,6 +355,7 @@ markers = [
     "security: marks security-focused tests",
     "load: marks load testing scenarios",
     "property: marks property-based tests using Hypothesis",
+    "asyncio: marks tests that use asyncio",
 ]
 filterwarnings = [
     "error",
