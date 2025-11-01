@@ -77,6 +77,15 @@ class EventState:
 class EventProcessor(PipelineWorker):
     """Central event processing system for security events."""
     
+    def _get_config_value(self, config, key, default=None):
+        """Helper method to handle both dict and config objects."""
+        if hasattr(config, key):
+            return getattr(config, key, default)
+        elif hasattr(config, 'get'):
+            return config.get(key, default)
+        else:
+            return default
+    
     def __init__(self, message_bus: MessageBus, config: Optional[Dict[str, Any]] = None):
         """
         Initialize event processor.
@@ -91,22 +100,25 @@ class EventProcessor(PipelineWorker):
         
         self.event_config = config
         
+        # Use helper method for config access
+        db_config = self._get_config_value(config, 'database_config', {})
+        web_config = self._get_config_value(config, 'web_streaming_config', {})
+        enrichment_config = self._get_config_value(config, 'enrichment_config', {})
+        
         # Initialize database
-        db_config = config.get('database_config', {})
+        db_path = self._get_config_value(db_config, 'path', 'data/events.db')
         self.event_database = EventDatabase(
-            db_path=db_config.get('path', 'data/events.db'),
-            config=db_config
+            db_path=db_path,
+            config=db_config if isinstance(db_config, dict) else {}
         )
         
         # Initialize web event streamer
-        web_config = config.get('web_streaming_config', {})
         self.web_streamer = WebEventStreamer(web_config)
         
         # Initialize enrichment processors
         self.enrichment_processors = self._initialize_enrichment_processors()
         
         # Initialize enrichment orchestrator
-        enrichment_config = config.get('enrichment_config', {})
         self.enrichment_orchestrator = EnrichmentOrchestrator(
             self.enrichment_processors,
             enrichment_config
@@ -125,19 +137,21 @@ class EventProcessor(PipelineWorker):
         self.persistence_failure_count = 0
         
         # Configuration
-        self.max_concurrent_events = config.get('performance_config', {}).get('max_concurrent_events', 100)
-        self.event_timeout = config.get('performance_config', {}).get('event_timeout', 60.0)
+        performance_config = self._get_config_value(config, 'performance_config', {})
+        self.max_concurrent_events = self._get_config_value(performance_config, 'max_concurrent_events', 100)
+        self.event_timeout = self._get_config_value(performance_config, 'event_timeout', 60.0)
         
         # Call parent constructor
-        super().__init__(message_bus, config.get('base_config', {}))
+        base_config = self._get_config_value(config, 'base_config', {})
+        super().__init__(message_bus, base_config)
         
         logger.info(f"Initialized {self.worker_id} with {len(self.enrichment_processors)} enrichment processors")
     
     def _initialize_enrichment_processors(self) -> List[BaseEnrichment]:
         """Initialize enrichment processors from configuration."""
         processors = []
-        enrichment_config = self.event_config.get('enrichment_config', {})
-        enabled_processors = enrichment_config.get('enabled_processors', [])
+        enrichment_config = self._get_config_value(self.event_config, 'enrichment_config', {})
+        enabled_processors = self._get_config_value(enrichment_config, 'enabled_processors', [])
         
         # Metadata enrichment (priority 1)
         if 'metadata_enrichment' in enabled_processors:
@@ -151,11 +165,11 @@ class EventProcessor(PipelineWorker):
         
         # Web events streaming (priority 8)
         if 'web_events' in enabled_processors:
-            web_config = self.event_config.get('web_streaming_config', {})
+            web_config = self._get_config_value(self.event_config, 'web_streaming_config', {})
             processors.append(WebEventsEnrichment(
                 {
                     'priority': 8,
-                    'enabled': web_config.get('enabled', True),
+                    'enabled': self._get_config_value(web_config, 'enabled', True),
                     'streaming': web_config,
                     'stream_all_events': True
                 },
