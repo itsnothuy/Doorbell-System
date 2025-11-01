@@ -17,7 +17,7 @@ sys.path.append(str(project_root))
 
 # Set environment variables for cloud deployment
 os.environ['DEVELOPMENT_MODE'] = 'true'
-os.environ['PORT'] = os.environ.get('PORT', '8000')
+os.environ['PORT'] = os.environ.get('PORT', '8001')
 
 from src.web_interface import create_web_app
 from src.integration.orchestrator_manager import OrchestratorManager
@@ -35,19 +35,27 @@ try:
     logger.info("Initializing Doorbell Security System with Pipeline Architecture...")
     
     # Create orchestrator manager
+    logger.info("Creating orchestrator manager...")
     orchestrator_manager = OrchestratorManager()
+    
+    logger.info("Starting orchestrator manager...")
     orchestrator_manager.start() # Start the pipeline
     
     # Get legacy adapter for web interface compatibility
+    logger.info("Getting legacy interface...")
     doorbell_system = orchestrator_manager.get_legacy_interface()
     
     # Create Flask app
+    logger.info("Creating Flask app...")
     app = create_web_app(doorbell_system)
     
     logger.info("✅ Cloud deployment ready (Pipeline Architecture)")
     
 except Exception as init_exception:
     system_init_error_message = str(init_exception)
+    logger.error(f"Failed to initialize system: {init_exception}")
+    import traceback
+    logger.error(traceback.format_exc())
     logger.error(f"Failed to initialize system: {system_init_error_message}")
     # Create a minimal app for error display
     from flask import Flask, jsonify
