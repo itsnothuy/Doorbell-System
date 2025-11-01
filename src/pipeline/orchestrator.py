@@ -30,8 +30,9 @@ from src.pipeline.face_detector import FaceDetectionWorker
 from src.pipeline.face_recognizer import FaceRecognitionWorker
 from src.pipeline.event_processor import EventProcessor
 from src.storage.event_database import EventDatabase
+from src.storage.face_database import FaceDatabase
 from src.hardware.camera_handler import CameraHandler
-from src.hardware.gpio_handler import GPIOHandler
+from src.gpio_handler import GPIOHandler
 from config.pipeline_config import PipelineConfig
 from config.logging_config import setup_logging
 
@@ -63,6 +64,10 @@ class PipelineOrchestrator:
         self.message_bus = MessageBus()
         self.queue_manager = QueueManager()
         self.event_database = EventDatabase()
+        self.face_database = FaceDatabase(
+            db_path="data/faces.db",
+            config=self.config.storage.__dict__ if hasattr(self.config.storage, '__dict__') else {}
+        )
         
         # Pipeline state
         self.running = False
@@ -87,7 +92,8 @@ class PipelineOrchestrator:
     def _initialize_hardware(self) -> None:
         """Initialize hardware components with fallback to mocks."""
         try:
-            self.camera_handler = CameraHandler.create()
+            self.camera_handler = CameraHandler()
+            self.camera_handler.initialize()
             self.gpio_handler = GPIOHandler()
             logger.info("Hardware components initialized")
         except Exception as e:
@@ -135,6 +141,7 @@ class PipelineOrchestrator:
             # Stage 4: Face Recognition (multi-process worker pool)
             face_recognizer = FaceRecognitionWorker(
                 message_bus=self.message_bus,
+                face_database=self.face_database,
                 config=self.config.face_recognition
             )
             self.stages.append(PipelineStage(
@@ -146,7 +153,6 @@ class PipelineOrchestrator:
             # Stage 5: Event Processing and Enrichment
             event_processor = EventProcessor(
                 message_bus=self.message_bus,
-                event_database=self.event_database,
                 config=self.config.event_processing
             )
             self.stages.append(PipelineStage(
