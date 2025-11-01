@@ -28,16 +28,24 @@ logger = logging.getLogger(__name__)
 class SimilarityMatcher:
     """Compares face encodings and computes similarity scores."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config):
         """
         Initialize similarity matcher.
         
         Args:
-            config: Configuration dictionary with matching settings
+            config: Configuration dictionary or config object with matching settings
         """
         self.config = config
-        self.similarity_metric = config.get('similarity_metric', 'euclidean')
-        self.tolerance = config.get('tolerance', 0.6)
+        
+        # Handle both dict and config object
+        if hasattr(config, 'similarity_metric'):
+            # It's a config object
+            self.similarity_metric = getattr(config, 'similarity_metric', 'euclidean')
+            self.tolerance = getattr(config, 'tolerance', 0.6)
+        else:
+            # It's a dictionary
+            self.similarity_metric = config.get('similarity_metric', 'euclidean')
+            self.tolerance = config.get('tolerance', 0.6)
         
         # Performance metrics
         self.comparison_count = 0

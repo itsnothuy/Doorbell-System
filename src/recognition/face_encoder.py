@@ -29,17 +29,26 @@ logger = logging.getLogger(__name__)
 class FaceEncoder:
     """Extracts face encodings from face images."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config):
         """
         Initialize face encoder.
         
         Args:
-            config: Configuration dictionary with encoding settings
+            config: Configuration dictionary or config object with encoding settings
         """
         self.config = config
-        self.model = config.get('encoding_model', 'small')
-        self.num_jitters = config.get('face_jitter', 1)
-        self.num_upsamplings = config.get('number_of_times_to_upsample', 1)
+        
+        # Handle both dict and config object
+        if hasattr(config, 'encoding_model'):
+            # It's a config object
+            self.model = getattr(config, 'encoding_model', 'small')
+            self.num_jitters = getattr(config, 'face_jitter', 1)
+            self.num_upsamplings = getattr(config, 'number_of_times_to_upsample', 1)
+        else:
+            # It's a dictionary
+            self.model = config.get('encoding_model', 'small')
+            self.num_jitters = config.get('face_jitter', 1)
+            self.num_upsamplings = config.get('number_of_times_to_upsample', 1)
         
         # Performance metrics
         self.encoding_count = 0
