@@ -8,6 +8,7 @@ with sensible defaults and platform-specific optimizations.
 
 import os
 import sys
+import logging
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,7 +19,10 @@ sys.path.append(str(project_root))
 
 from src.platform_detector import platform_detector
 
+logger = logging.getLogger(__name__)
 
+
+@dataclass
 @dataclass
 class FrameCaptureConfig:
     """Configuration for frame capture stage."""
@@ -79,6 +83,7 @@ class MotionDetectionConfig:
 
 
 @dataclass
+@dataclass
 class FaceDetectionConfig:
     """Configuration for face detection stage."""
     enabled: bool = True
@@ -135,7 +140,7 @@ class FaceRecognitionConfig:
     backup_enabled: bool = True
     backup_interval_hours: int = 24
     
-    # Cache settings
+    # Cache settings - use field with default_factory for complex types
     cache: Dict[str, Any] = field(default_factory=lambda: {
         'enabled': True,
         'cache_size': 1000,
@@ -367,6 +372,11 @@ class PipelineConfig:
     
     def _apply_config_dict(self, config_dict: Dict[str, Any]) -> None:
         """Apply configuration from dictionary."""
+        # Check if config_dict is actually a dictionary
+        if not isinstance(config_dict, dict):
+            logger.warning(f"Expected dict for config_dict, got {type(config_dict)}. Skipping.")
+            return
+            
         for section_name, section_config in config_dict.items():
             if hasattr(self, section_name):
                 section = getattr(self, section_name)
