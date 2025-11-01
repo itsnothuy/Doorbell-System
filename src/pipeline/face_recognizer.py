@@ -56,13 +56,30 @@ class FaceRecognitionWorker(PipelineWorker):
         self.face_database = face_database
         self.face_encoder = FaceEncoder(config)
         self.similarity_matcher = SimilarityMatcher(config)
-        self.recognition_cache = RecognitionCache(config.get('cache', {}))
+        
+        # Handle both dict and config object
+        if hasattr(config, 'cache'):
+            # It's a config object
+            cache_config = getattr(config, 'cache', {})
+            tolerance = getattr(config, 'tolerance', 0.6)
+            blacklist_tolerance = getattr(config, 'blacklist_tolerance', 0.5)
+            min_confidence = getattr(config, 'min_confidence', 0.4)
+            batch_size = getattr(config, 'batch_size', 5)
+        else:
+            # It's a dictionary
+            cache_config = config.get('cache', {})
+            tolerance = config.get('tolerance', 0.6)
+            blacklist_tolerance = config.get('blacklist_tolerance', 0.5)
+            min_confidence = config.get('min_confidence', 0.4)
+            batch_size = config.get('batch_size', 5)
+        
+        self.recognition_cache = RecognitionCache(cache_config)
         
         # Configuration
-        self.tolerance = config.get('tolerance', 0.6)
-        self.blacklist_tolerance = config.get('blacklist_tolerance', 0.5)
-        self.min_confidence = config.get('min_confidence', 0.4)
-        self.batch_size = config.get('batch_size', 5)
+        self.tolerance = tolerance
+        self.blacklist_tolerance = blacklist_tolerance
+        self.min_confidence = min_confidence
+        self.batch_size = batch_size
         
         # Performance metrics
         self.recognition_count = 0

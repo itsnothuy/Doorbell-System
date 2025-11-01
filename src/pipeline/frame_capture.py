@@ -35,19 +35,34 @@ logger = logging.getLogger(__name__)
 class FrameCaptureWorker(PipelineWorker):
     """Frame capture worker with ring buffer and event-driven capture."""
     
-    def __init__(self, camera_handler: CameraHandler, message_bus: MessageBus, config: Dict[str, Any]):
+    def __init__(self, camera_handler: CameraHandler, message_bus: MessageBus, config):
         # Store camera handler before calling parent __init__
         self.camera_handler = camera_handler
-        self.ring_buffer = deque(maxlen=config.get('buffer_size', 30))
+        
+        # Handle both dict and config object
+        if hasattr(config, 'buffer_size'):
+            # It's a config object
+            buffer_size = getattr(config, 'buffer_size', 30)
+            capture_fps = getattr(config, 'capture_fps', 30)
+            burst_count = getattr(config, 'burst_count', 5)
+            burst_interval = getattr(config, 'burst_interval', 0.2)
+        else:
+            # It's a dictionary
+            buffer_size = config.get('buffer_size', 30)
+            capture_fps = config.get('capture_fps', 30)
+            burst_count = config.get('burst_count', 5)
+            burst_interval = config.get('burst_interval', 0.2)
+        
+        self.ring_buffer = deque(maxlen=buffer_size)
         
         # Threading components
         self.capture_thread: Optional[threading.Thread] = None
         self.capture_lock = threading.RLock()
         
         # Configuration
-        self.capture_fps = config.get('capture_fps', 30)
-        self.burst_count = config.get('burst_count', 5)
-        self.burst_interval = config.get('burst_interval', 0.2)
+        self.capture_fps = capture_fps
+        self.burst_count = burst_count
+        self.burst_interval = burst_interval
         
         # Metrics
         self.frames_captured = 0

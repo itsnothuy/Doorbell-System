@@ -52,11 +52,25 @@ class FaceDetectionWorker(PipelineWorker):
         """
         super().__init__(message_bus, config)
         
+        # Handle both dict and config object
+        if hasattr(config, 'worker_count'):
+            # It's a config object
+            worker_count = getattr(config, 'worker_count', 2)
+            detector_type = getattr(config, 'detector_type', 'cpu')
+            max_queue_size = getattr(config, 'max_queue_size', 100)
+            job_timeout = getattr(config, 'job_timeout', 30.0)
+        else:
+            # It's a dictionary
+            worker_count = config.get('worker_count', 2)
+            detector_type = config.get('detector_type', 'cpu')
+            max_queue_size = config.get('max_queue_size', 100)
+            job_timeout = config.get('job_timeout', 30.0)
+        
         # Configuration
-        self.worker_count = config.get('worker_count', 2)
-        self.detector_type = config.get('detector_type', 'cpu')
-        self.max_queue_size = config.get('max_queue_size', 100)
-        self.job_timeout = config.get('job_timeout', 30.0)
+        self.worker_count = worker_count
+        self.detector_type = detector_type
+        self.max_queue_size = max_queue_size
+        self.job_timeout = job_timeout
         
         # Worker pool and job management
         self.worker_pool: Optional[ProcessPoolExecutor] = None
