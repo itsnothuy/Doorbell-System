@@ -66,8 +66,9 @@ class OrchestratorManager:
         from config.orchestrator_config import OrchestratorConfig
         self.config = OrchestratorConfig(config or {})
         
-        # Initialize orchestrator
-        self.orchestrator = PipelineOrchestrator(self.config.pipeline_config)
+        # Initialize orchestrator with config dictionary, not config object
+        pipeline_config_dict = self.config.pipeline_config if self.config.pipeline_config else None
+        self.orchestrator = PipelineOrchestrator(pipeline_config_dict)
         
         # Legacy adapter will be created when needed
         self._legacy_adapter = None

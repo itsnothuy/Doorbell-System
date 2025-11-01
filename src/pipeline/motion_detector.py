@@ -538,3 +538,7 @@ class MotionDetector(PipelineWorker):
         }
         
         return {**base_metrics, **motion_metrics}
+
+
+# Alias for backward compatibility with orchestrator
+MotionDetectionWorker = MotionDetector
